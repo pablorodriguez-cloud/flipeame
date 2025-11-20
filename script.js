@@ -40,6 +40,7 @@ function renderFicha(data) {
         <p><strong>Superficie útil:</strong> ${data.m2_utile} m²</p>
         <p><strong>Superficie total:</strong> ${data.m2_total} m²</p>
         <p><strong>Programa:</strong> ${data.programa}</p>
+        <p><strong>Gastos comunes aprox:</strong> ${data.gastos_comunes === "N/D" ? "N/D" : "$ " + data.gastos_comunes}</p>
       </div>
   `;
 
