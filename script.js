@@ -27,8 +27,10 @@ btn.addEventListener("click", async () => {
 resultado.innerHTML = `
   <h2>${data.titulo}</h2>
   <p><strong>Precio UF:</strong> ${data.precio_uf}</p>
+  <p><strong>Superficie útil:</strong> ${data.m2_utile} m²</p>
+  <p><strong>Superficie total:</strong> ${data.m2_total} m²</p>
   <p><strong>Programa:</strong> ${data.programa}</p>
-  <p>${data.descripcion_raw}</p>
+  <p>${data.descripcion_raw || "Sin descripción disponible"}</p>
   <p style="margin-top:1rem; font-size:0.85rem; color:#7A7A7A;">
     <strong>URL procesada:</strong> ${data.sourceUrl || "(no recibida)"}
   </p>
