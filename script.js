@@ -24,15 +24,15 @@ btn.addEventListener("click", async () => {
 
     const data = await resp.json();
 
-    resultado.innerHTML = `
-      <h2>${data.titulo}</h2>
-      <p><strong>Precio UF:</strong> ${data.precio_uf}</p>
-      <p><strong>Programa:</strong> ${data.programa}</p>
-      <p>${data.descripcion}</p>
-      <p style="margin-top:1rem; font-size:0.85rem; color:#7A7A7A;">
-        <strong>URL procesada:</strong> ${data.sourceUrl || "(no recibida)"}
-      </p>
-    `;
+resultado.innerHTML = `
+  <h2>${data.titulo}</h2>
+  <p><strong>Precio UF:</strong> ${data.precio_uf}</p>
+  <p><strong>Programa:</strong> ${data.programa}</p>
+  <p>${data.descripcion_raw}</p>
+  <p style="margin-top:1rem; font-size:0.85rem; color:#7A7A7A;">
+    <strong>URL procesada:</strong> ${data.sourceUrl || "(no recibida)"}
+  </p>
+`;
   } catch (err) {
     console.error(err);
     resultado.innerHTML = "Ocurrió un error generando la ficha (conexión backend).";
