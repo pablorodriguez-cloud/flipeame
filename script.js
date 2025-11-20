@@ -53,14 +53,11 @@ function renderFicha(data) {
 
       <h3>Highlights</h3>
       <ul>
-        ${ai.highlights.map(h => `<li>${h}</li>`).join("")}
+        ${(ai.highlights || []).map(h => `<li>${h}</li>`).join("")}
       </ul>
 
       <h3>Match con el Cliente</h3>
       <p>${ai.match_cliente}</p>
-
-      <h3>Mensaje corto para WhatsApp</h3>
-      <pre class="whatsapp-box">${ai.mensaje_whatsapp}</pre>
     `;
   } else {
     html += `
