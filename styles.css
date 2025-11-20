@@ -62,3 +62,32 @@ button:hover {
   box-shadow: 0 4px 10px rgba(0,0,0,0.06);
   min-height: 80px;
 }
+.ficha {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  line-height: 1.6;
+}
+
+.ficha h2 {
+  color: var(--azul-oscuro);
+  font-size: 1.6rem;
+}
+
+.ficha h3 {
+  margin-top: 1.5rem;
+  color: var(--azul-medio);
+}
+
+.ficha ul {
+  padding-left: 1.2rem;
+}
+
+.whatsapp-box {
+  background: #e8f5e9;
+  padding: 10px;
+  border-radius: 6px;
+  white-space: pre-wrap;
+  border: 1px solid #c8e6c9;
+}
