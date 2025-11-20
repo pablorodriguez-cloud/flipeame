@@ -15,28 +15,68 @@ btn.addEventListener("click", async () => {
   resultado.innerHTML = "Generando ficha, dame un segundo...";
 
   try {
-    // Llamamos al backend con la URL como query param
     const resp = await fetch(`${BACKEND_URL}?url=${encodeURIComponent(url)}`);
-
-    if (!resp.ok) {
-      throw new Error("Error en respuesta del servidor");
-    }
+    if (!resp.ok) throw new Error("Error en respuesta del servidor");
 
     const data = await resp.json();
+    resultado.innerHTML = renderFicha(data);
 
-resultado.innerHTML = `
-  <h2>${data.titulo}</h2>
-  <p><strong>Precio UF:</strong> ${data.precio_uf}</p>
-  <p><strong>Superficie útil:</strong> ${data.m2_utile} m²</p>
-  <p><strong>Superficie total:</strong> ${data.m2_total} m²</p>
-  <p><strong>Programa:</strong> ${data.programa}</p>
-  <p>${data.descripcion_raw || "Sin descripción disponible"}</p>
-  <p style="margin-top:1rem; font-size:0.85rem; color:#7A7A7A;">
-    <strong>URL procesada:</strong> ${data.sourceUrl || "(no recibida)"}
-  </p>
-`;
   } catch (err) {
     console.error(err);
     resultado.innerHTML = "Ocurrió un error generando la ficha (conexión backend).";
   }
 });
+
+
+function renderFicha(data) {
+  const ai = data.ai;
+
+  let html = `
+    <div class="ficha">
+      <h2>${data.titulo}</h2>
+
+      <div class="datos-basicos">
+        <p><strong>Precio UF:</strong> ${data.precio_uf}</p>
+        <p><strong>Superficie útil:</strong> ${data.m2_utile} m²</p>
+        <p><strong>Superficie total:</strong> ${data.m2_total} m²</p>
+        <p><strong>Programa:</strong> ${data.programa}</p>
+      </div>
+  `;
+
+  // Si hay IA → mostramos la ficha profesional
+  if (ai) {
+    html += `
+      <hr />
+
+      <h3>Descripción Ejecutiva</h3>
+      <p>${ai.descripcion_ejecutiva}</p>
+
+      <h3>Highlights</h3>
+      <ul>
+        ${ai.highlights.map(h => `<li>${h}</li>`).join("")}
+      </ul>
+
+      <h3>Match con el Cliente</h3>
+      <p>${ai.match_cliente}</p>
+
+      <h3>Mensaje corto para WhatsApp</h3>
+      <pre class="whatsapp-box">${ai.mensaje_whatsapp}</pre>
+    `;
+  } else {
+    html += `
+      <h3>Descripción</h3>
+      <p>${data.descripcion_raw}</p>
+    `;
+  }
+
+  html += `
+      <hr />
+      <p style="font-size:0.8rem; color:#666;">
+        <strong>URL procesada:</strong> ${data.sourceUrl}
+      </p>
+    </div>
+  `;
+
+  return html;
+}
+
