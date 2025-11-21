@@ -27,7 +27,6 @@ copyBtn.addEventListener("click", async () => {
         copyBtn.textContent = "Copiar texto WhatsApp";
       }, 2000);
     } else {
-      // Fallback simple
       alert("Tu navegador no permite copiar automáticamente. Copia manualmente:\n\n" + lastWhatsappText);
     }
   } catch (err) {
@@ -66,6 +65,7 @@ async function handleGenerate() {
 
     // Render ficha visual
     resultado.innerHTML = renderFicha(data);
+    attachGalleryHandlers();
 
     // Generar texto de WhatsApp y guardarlo solo para el botón
     const ai = data.ai || {};
@@ -129,7 +129,24 @@ function getPortalId(sourceUrl) {
   return m ? m[1] : null;
 }
 
-// Render principal de la ficha (SIN texto de WhatsApp)
+// Hace que las miniaturas cambien la foto principal al hacer click
+function attachGalleryHandlers() {
+  const main = document.querySelector(".main-photo");
+  const thumbs = document.querySelectorAll(".thumb-photo");
+  if (!main || !thumbs.length) return;
+
+  thumbs.forEach((thumb) => {
+    thumb.addEventListener("click", () => {
+      const url = thumb.dataset.photoUrl || thumb.src;
+      main.src = url;
+      // marcar thumb activa
+      thumbs.forEach(t => t.classList.remove("active-thumb"));
+      thumb.classList.add("active-thumb");
+    });
+  });
+}
+
+// Render principal de la ficha (sin texto de WhatsApp)
 function renderFicha(data) {
   const ai = data.ai || {};
   const portalId = getPortalId(data.sourceUrl);
@@ -166,7 +183,7 @@ function renderFicha(data) {
   if (gallery.length > 0) {
     html += `<div class="thumbs-row">`;
     gallery.forEach((url) => {
-      html += `<img class="thumb-photo" src="${url}" alt="Foto propiedad" />`;
+      html += `<img class="thumb-photo" src="${url}" data-photo-url="${url}" alt="Foto propiedad" />`;
     });
     html += `</div>`;
   }
