@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Capa_2" data-name="Capa 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64.86 54.46">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: #9ff7da;
+      }
+
+      .cls-1, .cls-2, .cls-3 {
+        stroke-width: 0px;
+      }
+
+      .cls-2 {
+        fill: #3388f4;
+      }
+
+      .cls-3 {
+        fill: #142575;
+      }
+    </style>
+  </defs>
+  <g id="Capa_1-2" data-name="Capa 1">
+    <g id="isotipo_logotipo_Oficial" data-name="isotipo logotipo Oficial">
+      <path class="cls-2" d="M61.32,10.46L47.64,1.33c-2.66-1.78-6.13-1.78-8.8,0l-17.22,11.48v20.9c0,4.38,3.55,7.93,7.93,7.93h27.38c4.38,0,7.93-3.55,7.93-7.93v-16.65c0-2.65-1.32-5.13-3.53-6.6h0Z"/>
+      <path class="cls-3" d="M35.31,12.82H7.93c-4.38,0-7.93,3.55-7.93,7.93v16.65c0,2.65,1.32,5.13,3.53,6.6l13.69,9.13c2.66,1.78,6.13,1.78,8.8,0l17.22-11.48v-20.9c0-4.38-3.55-7.93-7.93-7.93h0Z"/>
+      <path class="cls-1" d="M35.31,12.82h-13.69v20.9c0,4.38,3.55,7.93,7.93,7.93h13.69v-20.9c0-4.38-3.55-7.93-7.93-7.93"/>
+    </g>
+  </g>
+</svg>
