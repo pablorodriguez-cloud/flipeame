@@ -1,17 +1,37 @@
 const btn = document.getElementById("generateBtn");
+const copyBtn = document.getElementById("copyWhatsappBtn");
 const input = document.getElementById("urlInput");
 const resultado = document.getElementById("resultado");
 
 // URL de tu Web App de Apps Script (backend)
 const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwksM2kjeV5ffPMv-efll2GiKQicyaoEpRtgNyYBBAdm3wNjofSHccnTS01TI5IsvQ/exec";
 
-// Manejar click
+let lastWhatsappText = null;
+
+// Eventos
 btn.addEventListener("click", handleGenerate);
 
-// Enter en el input
 input.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     handleGenerate();
+  }
+});
+
+copyBtn.addEventListener("click", async () => {
+  if (!lastWhatsappText) return;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(lastWhatsappText);
+      copyBtn.textContent = "Copiado ✅";
+      setTimeout(() => {
+        copyBtn.textContent = "Copiar texto WhatsApp";
+      }, 2000);
+    } else {
+      // Fallback simple
+      alert("Tu navegador no permite copiar automáticamente. Copia manualmente:\n\n" + lastWhatsappText);
+    }
+  } catch (err) {
+    alert("No se pudo copiar el texto. Puedes copiarlo manualmente:\n\n" + lastWhatsappText);
   }
 });
 
@@ -25,6 +45,8 @@ async function handleGenerate() {
   const url = normalizePropertyUrl(rawUrl);
 
   resultado.innerHTML = "Generando ficha, un momento...";
+  copyBtn.disabled = true;
+  lastWhatsappText = null;
 
   try {
     const resp = await fetch(`${BACKEND_URL}?url=${encodeURIComponent(url)}`);
@@ -42,7 +64,29 @@ async function handleGenerate() {
       return;
     }
 
+    // Render ficha visual
     resultado.innerHTML = renderFicha(data);
+
+    // Generar texto de WhatsApp y guardarlo solo para el botón
+    const ai = data.ai || {};
+    const precioUFNum = parseNumber(data.precio_uf);
+    const m2UtileNum = parseNumber(data.m2_utile);
+    const m2TotalNum = parseNumber(data.m2_total);
+
+    const ufM2Util = (precioUFNum && m2UtileNum)
+      ? (precioUFNum / m2UtileNum).toFixed(0)
+      : null;
+
+    const ufM2Total = (precioUFNum && m2TotalNum)
+      ? (precioUFNum / m2TotalNum).toFixed(0)
+      : null;
+
+    lastWhatsappText = buildWhatsappText(data, ai, {
+      ufM2Util,
+      ufM2Total
+    });
+    copyBtn.disabled = false;
+    copyBtn.textContent = "Copiar texto WhatsApp";
 
   } catch (err) {
     console.error(err);
@@ -52,16 +96,16 @@ async function handleGenerate() {
         <p>${err.message}</p>
       </div>
     `;
+    copyBtn.disabled = true;
+    lastWhatsappText = null;
   }
 }
 
-// Normaliza URL del aviso (sacamos trackers tipo #polycard...)
+// Normaliza URL del aviso (se come el #polycard y similares)
 function normalizePropertyUrl(url) {
-  // Si viene con espacios o parámetros raros, nos quedamos con lo primero que parezca URL
   const parts = url.split(" ");
   url = parts[0];
 
-  // Cortar fragmentos tipo #polycard...
   const hashIdx = url.indexOf("#");
   if (hashIdx !== -1) {
     url = url.substring(0, hashIdx);
@@ -73,7 +117,6 @@ function normalizePropertyUrl(url) {
 // Parsear UF y m2 a número
 function parseNumber(str) {
   if (!str || str === "N/D") return null;
-  // Sacar puntos de miles, cambiar coma por punto
   const clean = String(str).replace(/\./g, "").replace(",", ".");
   const num = Number(clean);
   return Number.isFinite(num) ? num : null;
@@ -86,7 +129,7 @@ function getPortalId(sourceUrl) {
   return m ? m[1] : null;
 }
 
-// Render principal de la ficha
+// Render principal de la ficha (SIN texto de WhatsApp)
 function renderFicha(data) {
   const ai = data.ai || {};
   const portalId = getPortalId(data.sourceUrl);
@@ -105,11 +148,6 @@ function renderFicha(data) {
 
   const mainImg = data.main_image_url || (data.image_urls && data.image_urls[0]) || null;
   const gallery = (data.image_urls || []).filter((u) => u && u !== mainImg);
-
-  const whatsappText = buildWhatsappText(data, ai, {
-    ufM2Util,
-    ufM2Total
-  });
 
   let html = `
     <div class="ficha">
@@ -165,149 +203,4 @@ function renderFicha(data) {
             </div>
             <div>
               <span class="label">Estac.</span>
-              <span class="value">${data.estacionamientos || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Bodegas</span>
-              <span class="value">${data.bodegas || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Piso</span>
-              <span class="value">${data.piso || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Orientación</span>
-              <span class="value">${data.orientacion || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Antigüedad</span>
-              <span class="value">${data.antiguedad || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">G. comunes</span>
-              <span class="value">${data.gastos_comunes === "N/D" ? "N/D" : "$ " + data.gastos_comunes}</span>
-            </div>
-  `;
-
-  if (ufM2Util) {
-    html += `
-            <div>
-              <span class="label">UF/m² útil</span>
-              <span class="value">${ufM2Util}</span>
-            </div>
-    `;
-  }
-
-  if (ufM2Total) {
-    html += `
-            <div>
-              <span class="label">UF/m² total</span>
-              <span class="value">${ufM2Total}</span>
-            </div>
-    `;
-  }
-
-  html += `
-          </div>
-        </div>
-      </div> <!-- /ficha-header -->
-  `;
-
-  // Bloque IA
-  if (ai && (ai.descripcion_ejecutiva || (ai.highlights && ai.highlights.length) || ai.match_cliente)) {
-    html += `
-      <div class="ficha-body">
-        ${ai.descripcion_ejecutiva ? `
-          <h3>Descripción ejecutiva</h3>
-          <p>${ai.descripcion_ejecutiva}</p>
-        ` : ""}
-
-        ${(ai.highlights && ai.highlights.length) ? `
-          <h3>Highlights</h3>
-          <ul>
-            ${ai.highlights.map(h => `<li>${h}</li>`).join("")}
-          </ul>
-        ` : ""}
-
-        ${ai.match_cliente ? `
-          <h3>Match con el cliente</h3>
-          <p>${ai.match_cliente}</p>
-        ` : ""}
-      </div>
-    `;
-  } else {
-    // Fallback: descripción cruda
-    html += `
-      <div class="ficha-body">
-        <h3>Descripción</h3>
-        <p>${data.descripcion_raw || "Sin descripción disponible."}</p>
-      </div>
-    `;
-  }
-
-  // Bloque WhatsApp
-  html += `
-    <div class="whatsapp-section">
-      <h3>Texto para enviar por WhatsApp</h3>
-      <div class="whatsapp-box">
-        ${whatsappText.replace(/\n/g, "<br>")}
-      </div>
-    </div>
-  `;
-
-  // Footer técnico
-  html += `
-      <div class="ficha-footer">
-        <span>URL procesada: </span>
-        <a href="${data.sourceUrl}" target="_blank" rel="noopener noreferrer">
-          ${data.sourceUrl}
-        </a>
-      </div>
-    </div>
-  `;
-
-  return html;
-}
-
-// Arma texto compacto para WhatsApp
-function buildWhatsappText(data, ai, extra) {
-  const titulo = data.titulo || "Propiedad";
-  const precioUF = data.precio_uf || "N/D";
-  const m2U = data.m2_utile || "N/D";
-  const m2T = data.m2_total || "N/D";
-  const m2Ter = data.m2_terraza || "N/D";
-  const prog = data.programa || "N/D";
-  const estac = data.estacionamientos || "N/D";
-  const bodegas = data.bodegas || "N/D";
-
-  const ufM2U = extra.ufM2Util ? `${extra.ufM2Util} UF/m² útil` : null;
-  const ufM2T = extra.ufM2Total ? `${extra.ufM2Total} UF/m² total` : null;
-
-  let lineas = [];
-
-  lineas.push(`Te comparto el resumen de esta propiedad:`);
-  lineas.push(``);
-  lineas.push(`${titulo}`);
-  lineas.push(`Precio: UF ${precioUF}`);
-  lineas.push(`Programa: ${prog}`);
-  lineas.push(`Superficies: ${m2U} m² útiles, ${m2Ter} m² terraza, ${m2T} m² totales`);
-  lineas.push(`Estac/Bodegas: ${estac} estac, ${bodegas} bodegas`);
-
-  if (ufM2U || ufM2T) {
-    lineas.push(``);
-    lineas.push(`Indicadores:`);
-    if (ufM2U) lineas.push(`- ${ufM2U}`);
-    if (ufM2T) lineas.push(`- ${ufM2T}`);
-  }
-
-  if (ai && ai.descripcion_ejecutiva) {
-    lineas.push(``);
-    lineas.push(`Descripción ejecutiva:`);
-    lineas.push(ai.descripcion_ejecutiva);
-  }
-
-  lineas.push(``);
-  lineas.push(`Link: ${data.sourceUrl}`);
-
-  return lineas.join("\n");
-}
+              <span
