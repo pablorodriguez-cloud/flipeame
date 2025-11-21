@@ -4,20 +4,46 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Generador de Fichas Flipeame</title>
+
+  <!-- Fuente tipo Flipeame (ajústala si usas otra en el manual de marca) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-  <h1>Generador de Fichas Flipeame</h1>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="header-inner">
+        <div class="logo-block">
+          <!-- Reemplaza logo-flipeame.svg por tu archivo real -->
+          <img src="logo-flipeame.svg" alt="Flipeame" class="logo-flipeame" />
+          <div class="header-text">
+            <h1>Generador de Fichas</h1>
+            <p>Uso interno equipo Flipeame</p>
+          </div>
+        </div>
+        <div class="header-pill">
+          v1 · Beta interna
+        </div>
+      </div>
+    </header>
 
-  <div class="input-block">
-    <input id="urlInput" type="text" placeholder="Pega el link de la propiedad" />
-    <button id="generateBtn">Generar Ficha</button>
-    <button id="copyWhatsappBtn" disabled>Copiar texto WhatsApp</button>
-  </div>
+    <main class="app-main">
+      <section class="toolbar">
+        <div class="input-block">
+          <input id="urlInput" type="text" placeholder="Pega el link de la propiedad desde Portal Inmobiliario" />
+          <button id="generateBtn">Generar Ficha</button>
+          <button id="copyWhatsappBtn" disabled>Copiar texto WhatsApp</button>
+        </div>
+      </section>
 
-  <div id="resultado">
-    <!-- Aquí se va a renderizar la ficha -->
+      <section id="resultado">
+        <!-- Aquí se renderiza la ficha -->
+      </section>
+    </main>
   </div>
 
   <script src="script.js"></script>
