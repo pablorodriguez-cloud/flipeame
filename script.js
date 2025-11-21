@@ -203,4 +203,138 @@ function renderFicha(data) {
             </div>
             <div>
               <span class="label">Estac.</span>
-              <span
+              <span class="value">${data.estacionamientos || "N/D"}</span>
+            </div>
+            <div>
+              <span class="label">Bodegas</span>
+              <span class="value">${data.bodegas || "N/D"}</span>
+            </div>
+            <div>
+              <span class="label">Piso</span>
+              <span class="value">${data.piso || "N/D"}</span>
+            </div>
+            <div>
+              <span class="label">Orientación</span>
+              <span class="value">${data.orientacion || "N/D"}</span>
+            </div>
+            <div>
+              <span class="label">Antigüedad</span>
+              <span class="value">${data.antiguedad || "N/D"}</span>
+            </div>
+            <div>
+              <span class="label">G. comunes</span>
+              <span class="value">${data.gastos_comunes === "N/D" ? "N/D" : "$ " + data.gastos_comunes}</span>
+            </div>
+  `;
+
+  if (ufM2Util) {
+    html += `
+            <div>
+              <span class="label">UF/m² útil</span>
+              <span class="value">${ufM2Util}</span>
+            </div>
+    `;
+  }
+
+  if (ufM2Total) {
+    html += `
+            <div>
+              <span class="label">UF/m² total</span>
+              <span class="value">${ufM2Total}</span>
+            </div>
+    `;
+  }
+
+  html += `
+          </div>
+        </div>
+      </div> <!-- /ficha-header -->
+  `;
+
+  // Bloque IA
+  if (ai && (ai.descripcion_ejecutiva || (ai.highlights && ai.highlights.length) || ai.match_cliente)) {
+    html += `
+      <div class="ficha-body">
+        ${ai.descripcion_ejecutiva ? `
+          <h3>Descripción ejecutiva</h3>
+          <p>${ai.descripcion_ejecutiva}</p>
+        ` : ""}
+
+        ${(ai.highlights && ai.highlights.length) ? `
+          <h3>Highlights</h3>
+          <ul>
+            ${ai.highlights.map(h => `<li>${h}</li>`).join("")}
+          </ul>
+        ` : ""}
+
+        ${ai.match_cliente ? `
+          <h3>Match con el cliente</h3>
+          <p>${ai.match_cliente}</p>
+        ` : ""}
+      </div>
+    `;
+  } else {
+    html += `
+      <div class="ficha-body">
+        <h3>Descripción</h3>
+        <p>${data.descripcion_raw || "Sin descripción disponible."}</p>
+      </div>
+    `;
+  }
+
+  // Footer técnico
+  html += `
+      <div class="ficha-footer">
+        <span>URL procesada: </span>
+        <a href="${data.sourceUrl}" target="_blank" rel="noopener noreferrer">
+          ${data.sourceUrl}
+        </a>
+      </div>
+    </div>
+  `;
+
+  return html;
+}
+
+// Arma texto compacto para WhatsApp (USO INTERNO)
+function buildWhatsappText(data, ai, extra) {
+  const titulo = data.titulo || "Propiedad";
+  const precioUF = data.precio_uf || "N/D";
+  const m2U = data.m2_utile || "N/D";
+  const m2T = data.m2_total || "N/D";
+  const m2Ter = data.m2_terraza || "N/D";
+  const prog = data.programa || "N/D";
+  const estac = data.estacionamientos || "N/D";
+  const bodegas = data.bodegas || "N/D";
+
+  const ufM2U = extra.ufM2Util ? `${extra.ufM2Util} UF/m² útil` : null;
+  const ufM2T = extra.ufM2Total ? `${extra.ufM2Total} UF/m² total` : null;
+
+  let lineas = [];
+
+  lineas.push(`Te comparto el resumen de esta propiedad:`);
+  lineas.push(``);
+  lineas.push(`${titulo}`);
+  lineas.push(`Precio: UF ${precioUF}`);
+  lineas.push(`Programa: ${prog}`);
+  lineas.push(`Superficies: ${m2U} m² útiles, ${m2Ter} m² terraza, ${m2T} m² totales`);
+  lineas.push(`Estac/Bodegas: ${estac} estac, ${bodegas} bodegas`);
+
+  if (ufM2U || ufM2T) {
+    lineas.push(``);
+    lineas.push(`Indicadores:`);
+    if (ufM2U) lineas.push(`- ${ufM2U}`);
+    if (ufM2T) lineas.push(`- ${ufM2T}`);
+  }
+
+  if (ai && ai.descripcion_ejecutiva) {
+    lineas.push(``);
+    lineas.push(`Descripción ejecutiva:`);
+    lineas.push(ai.descripcion_ejecutiva);
+  }
+
+  lineas.push(``);
+  lineas.push(`Link: ${data.sourceUrl}`);
+
+  return lineas.join("\n");
+}
