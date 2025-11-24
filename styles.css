@@ -337,3 +337,8 @@ button {
   color: var(--brand-secondary);
   word-break: break-all;
 }
+
+.thumb-photo.active-thumb {
+  border-color: var(--brand-secondary);
+  box-shadow: 0 0 0 2px rgba(58, 139, 250, 0.35);
+}
