@@ -8,6 +8,9 @@ const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwksM2kjeV5ffPMv-ef
 
 let lastWhatsappText = null;
 
+let currentImages = [];
+let selectedImagesForPdf = [];
+
 // Eventos
 btn.addEventListener("click", handleGenerate);
 
@@ -139,11 +142,31 @@ function attachGalleryHandlers() {
     thumb.addEventListener("click", () => {
       const url = thumb.dataset.photoUrl || thumb.src;
       if (!url) return;
-      main.src = url;
 
-      // marcar thumb activa
+      // 1) Cambiar la foto grande
+      main.src = url;
       thumbs.forEach(t => t.classList.remove("active-thumb"));
       thumb.classList.add("active-thumb");
+
+      // 2) Toggle selección para PDF
+      const currentlySelected = thumb.dataset.selected === "true";
+
+      if (currentlySelected) {
+        // desmarcar
+        thumb.dataset.selected = "false";
+        thumb.classList.remove("selected-thumb");
+        selectedImagesForPdf = selectedImagesForPdf.filter(u => u !== url);
+      } else {
+        // marcar
+        thumb.dataset.selected = "true";
+        thumb.classList.add("selected-thumb");
+        if (!selectedImagesForPdf.includes(url)) {
+          selectedImagesForPdf.push(url);
+        }
+      }
+
+      // (por ahora solo dejamos el estado listo;
+      //  cuando creemos el PDF, usaremos selectedImagesForPdf)
     });
   });
 }
@@ -184,6 +207,11 @@ function renderFicha(data) {
   if (mainImg && !allImages.includes(mainImg)) {
     allImages.unshift(mainImg);
   }
+  
+  // Guardamos imágenes en estado para el futuro PDF
+  currentImages = [...allImages];
+  selectedImagesForPdf = [...allImages]; // por defecto, TODAS seleccionadas
+
 
   let html = `
     <div class="ficha">
@@ -202,16 +230,18 @@ function renderFicha(data) {
   if (allImages.length > 0) {
     html += `<div class="thumbs-row">`;
     allImages.forEach((url) => {
-      const isActive = url === mainImg;
-      html += `
-        <img
-          class="thumb-photo ${isActive ? "active-thumb" : ""}"
-          src="${url}"
-          data-photo-url="${url}"
-          alt="Foto propiedad"
-        />
-      `;
-    });
+    const isActive = url === mainImg;
+    html += `
+      <img
+        class="thumb-photo ${isActive ? "active-thumb" : ""} selected-thumb"
+        src="${url}"
+        data-photo-url="${url}"
+        data-selected="true"
+        alt="Foto propiedad"
+      />
+    `;
+  });
+
     html += `</div>`;
   }
 
