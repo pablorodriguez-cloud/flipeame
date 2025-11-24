@@ -138,7 +138,9 @@ function attachGalleryHandlers() {
   thumbs.forEach((thumb) => {
     thumb.addEventListener("click", () => {
       const url = thumb.dataset.photoUrl || thumb.src;
+      if (!url) return;
       main.src = url;
+
       // marcar thumb activa
       thumbs.forEach(t => t.classList.remove("active-thumb"));
       thumb.classList.add("active-thumb");
@@ -163,8 +165,25 @@ function renderFicha(data) {
     ? (precioUFNum / m2TotalNum).toFixed(0)
     : null;
 
-  const mainImg = data.main_image_url || (data.image_urls && data.image_urls[0]) || null;
-  const gallery = (data.image_urls || []).filter((u) => u && u !== mainImg);
+  // --- NUEVA LÓGICA DE IMÁGENES ---
+  // Construimos un array con todas las imágenes sin duplicados
+  const allImages = [];
+  (data.image_urls || []).forEach((u) => {
+    if (u && !allImages.includes(u)) {
+      allImages.push(u);
+    }
+  });
+
+  // Determinamos mainImg
+  let mainImg = data.main_image_url || null;
+  if (!mainImg && allImages.length > 0) {
+    mainImg = allImages[0];
+  }
+
+  // Si tenemos mainImg pero no está en allImages, la ponemos al inicio
+  if (mainImg && !allImages.includes(mainImg)) {
+    allImages.unshift(mainImg);
+  }
 
   let html = `
     <div class="ficha">
@@ -180,10 +199,18 @@ function renderFicha(data) {
     `;
   }
 
-  if (gallery.length > 0) {
+  if (allImages.length > 0) {
     html += `<div class="thumbs-row">`;
-    gallery.forEach((url) => {
-      html += `<img class="thumb-photo" src="${url}" data-photo-url="${url}" alt="Foto propiedad" />`;
+    allImages.forEach((url) => {
+      const isActive = url === mainImg;
+      html += `
+        <img
+          class="thumb-photo ${isActive ? "active-thumb" : ""}"
+          src="${url}"
+          data-photo-url="${url}"
+          alt="Foto propiedad"
+        />
+      `;
     });
     html += `</div>`;
   }
