@@ -251,6 +251,24 @@ button {
   transition: transform 0.12s ease, border-color 0.12s ease;
 }
 
+.thumb-photo.selected-thumb {
+  border-color: var(--azul-medio);
+  box-shadow: 0 0 0 2px rgba(58, 139, 250, 0.35);
+  position: relative;
+}
+
+.thumb-photo.selected-thumb::after {
+  content: "✓";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 11px;
+  background: var(--azul-medio);
+  color: white;
+  border-radius: 999px;
+  padding: 2px 5px;
+}
+
 .thumb-photo:hover {
   transform: translateY(-2px);
   border-color: var(--brand-secondary);
