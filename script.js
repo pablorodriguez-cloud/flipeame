@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwksM2kjeV5ffPMv-efll2GiKQicyaoEpRtgNyYBBAdm3wNjofSHccnTS01TI5IsvQ/exec"
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwksM2kjeV5ffPMv-efll2GiKQicyaoEpRtgNyYBBAdm3wNjofSHccnTS01TI5IsvQ/exec";
 let currentData = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -51,7 +51,7 @@ function getItemCode(url) {
 
 async function handleGenerate() {
   const url = document.getElementById("urlInput").value.trim();
-  const cardContainer = document.getElementById("cardContainer");
+  const pdfCard = document.getElementById("pdf-card");
 
   if (!url) {
     setStatus("Pega primero una URL de Portal Inmobiliario.", "error");
@@ -60,7 +60,7 @@ async function handleGenerate() {
 
   setStatus("Procesando publicación…", "info");
   setButtonsEnabled(false);
-  cardContainer.innerHTML = "";
+  if (pdfCard) pdfCard.innerHTML = "";
 
   try {
     const resp = await fetch(`${BACKEND_URL}?url=${encodeURIComponent(url)}`);
@@ -88,7 +88,10 @@ async function handleGenerate() {
 }
 
 function renderPropertyCard(data) {
-  const container = document.getElementById("cardContainer");
+  // Usamos SIEMPRE el contenedor pdf-card (es el que se ve y el que capturaremos en el PDF)
+  const container = document.getElementById("pdf-card");
+  if (!container) return;
+
   const titulo = safe(data.titulo, "Propiedad en venta");
   const itemCode = getItemCode(data.sourceUrl);
   const precio = formatUF(data.precio_uf);
@@ -117,7 +120,7 @@ function renderPropertyCard(data) {
           <div class="hero-image-wrapper">
             ${
               hero
-                ? `<img src="${hero}" alt="Foto propiedad" class="hero-image" id="heroImage">`
+                ? `<img src="${hero}" alt="Foto propiedad" class="hero-image" id="heroImage" crossorigin="anonymous">`
                 : `<div class="hero-image" style="background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:#9ca3af;">Sin imagen</div>`
             }
           </div>
@@ -131,7 +134,7 @@ function renderPropertyCard(data) {
               <button class="gallery-thumb ${
                 idx === 0 ? "active" : ""
               }" data-url="${u}">
-                <img src="${u}" alt="Foto ${idx + 1}">
+                <img src="${u}" alt="Foto ${idx + 1}" crossorigin="anonymous">
               </button>
             `
               )
@@ -307,172 +310,60 @@ async function handleCopyWhatsapp() {
   }
 }
 
-// ----------------- PDF -------------------
-
-function renderPdfFicha(data) {
-  const cont = document.getElementById("pdfFicha");
-  const titulo = safe(data.titulo, "Propiedad en venta");
-  const precio = formatUF(data.precio_uf);
-  const programa = safe(data.programa);
-  const utiles = safe(data.m2_utile);
-  const total = safe(data.m2_total);
-  const terraza = safe(data.m2_terraza);
-  const estac = safe(data.estacionamientos);
-  const bod = safe(data.bodegas);
-  const gastos =
-    data.gastos_comunes && data.gastos_comunes !== "N/D"
-      ? "$ " + data.gastos_comunes
-      : "N/D";
-  const orient = safe(data.orientacion);
-  const piso = safe(data.piso);
-  const antig = safe(data.antiguedad);
-
-  const descripcion =
-    (data.ai && data.ai.descripcion_ejecutiva) ||
-    safe(data.descripcion_raw, "Descripción no disponible");
-
-  const highlights =
-    (data.ai && Array.isArray(data.ai.highlights) && data.ai.highlights.length
-      ? data.ai.highlights
-      : []
-    );
-
-  const matchCliente =
-    (data.ai && data.ai.match_cliente) ||
-    "Ficha comercial orientada a clientes que busquen un estilo de vida de alto estándar.";
-
-  const hero = data.main_image_url || (data.image_urls && data.image_urls[0]) || "";
-  const thumbs = (data.image_urls || []).slice(1, 4); // 3 miniaturas para el PDF
-
-  cont.innerHTML = `
-    <div class="pdf-page">
-      <header class="pdf-header">
-        <img src="logo-flipeame.svg" class="pdf-logo" alt="Flipeame" />
-        <div class="pdf-tag">Ficha comercial · Uso interno · Información referencial</div>
-      </header>
-
-      <h1 class="pdf-title">${titulo}</h1>
-      <div class="pdf-subrow">
-        <strong>${precio}</strong> · ${programa}
-      </div>
-
-      <div class="pdf-grid">
-        <div class="pdf-hero">
-          ${
-            hero
-              ? `<img src="${hero}" alt="Foto propiedad">`
-              : `<div style="width:100%;height:70mm;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:9px;color:#9ca3af;">Sin imagen</div>`
-          }
-          ${
-            thumbs.length
-              ? `<div class="pdf-gallery">
-              ${thumbs
-                .map((u) => `<img src="${u}" alt="Foto adicional">`)
-                .join("")}
-            </div>`
-              : ""
-          }
-        </div>
-
-        <div class="pdf-facts">
-          <table class="pdf-facts-table">
-            <tr>
-              <td class="pdf-facts-label">Programa</td>
-              <td>${programa}</td>
-            </tr>
-            <tr>
-              <td class="pdf-facts-label">Superficie útil</td>
-              <td>${utiles} m²</td>
-            </tr>
-            <tr>
-              <td class="pdf-facts-label">Superficie total</td>
-              <td>${total} m²</td>
-            </tr>
-            <tr>
-              <td class="pdf-facts-label">Superficie terraza</td>
-              <td>${terraza} m²</td>
-            </tr>
-            <tr>
-              <td class="pdf-facts-label">Estac / Bodegas</td>
-              <td>${estac} estac · ${bod} bod</td>
-            </tr>
-            <tr>
-              <td class="pdf-facts-label">Gastos comunes aprox.</td>
-              <td>${gastos}</td>
-            </tr>
-            <tr>
-              <td class="pdf-facts-label">Orientación</td>
-              <td>${orient}</td>
-            </tr>
-            <tr>
-              <td class="pdf-facts-label">Piso</td>
-              <td>${piso}</td>
-            </tr>
-            <tr>
-              <td class="pdf-facts-label">Antigüedad</td>
-              <td>${antig}</td>
-            </tr>
-          </table>
-        </div>
-      </div>
-
-      <section class="pdf-section">
-        <h3>Descripción ejecutiva</h3>
-        <p>${descripcion}</p>
-      </section>
-
-      ${
-        highlights.length
-          ? `
-      <section class="pdf-section">
-        <h3>Highlights</h3>
-        <ul>
-          ${highlights.map((h) => `<li>${h}</li>`).join("")}
-        </ul>
-      </section>
-      `
-          : ""
-      }
-
-      <section class="pdf-section">
-        <h3>Match con el cliente</h3>
-        <p>${matchCliente}</p>
-      </section>
-
-      <footer class="pdf-footer">
-        Ficha para uso comercial de Flipeame. La información es referencial y debe ser validada
-        antes de presentarla formalmente al cliente. No incluye el enlace original del portal.
-      </footer>
-    </div>
-  `;
-}
+// ----------------- PDF (html2canvas + jsPDF) -------------------
 
 async function handleDownloadPdf() {
   if (!currentData) return;
-  if (typeof html2pdf === "undefined") {
-    alert("No se encontró la librería de PDF (html2pdf). Revisa el script en index.html.");
+
+  const pdfCard = document.getElementById("pdf-card");
+  if (!pdfCard) {
+    setStatus("No encontré la ficha para generar el PDF.", "error");
     return;
   }
 
-  renderPdfFicha(currentData);
+  if (!window.html2canvas || !window.jspdf) {
+    setStatus("Falta alguna librería de PDF (html2canvas o jsPDF). Revisa el index.html.", "error");
+    return;
+  }
 
-  const element = document.getElementById("pdfFicha");
-  const titulo = safe(currentData.titulo, "ficha-propiedad")
-    .replace(/[^a-zA-Z0-9\- ]/g, "")
-    .replace(/\s+/g, "-")
-    .toLowerCase();
-
-  const opt = {
-    margin: [0, 0, 0, 0],
-    filename: `${titulo || "ficha-propiedad"}.pdf`,
-    image: { type: "jpeg", quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-  };
+  const { jsPDF } = window.jspdf;
 
   try {
     setStatus("Generando PDF…", "info");
-    await html2pdf().set(opt).from(element).save();
+
+    // Capturamos la ficha visible como canvas
+    const canvas = await html2canvas(pdfCard, {
+      scale: 2,
+      useCORS: true
+    });
+
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+    const pdf = new jsPDF("p", "mm", "a4");
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    // Calculamos escala para que la ficha quepa completa en la página
+    const ratio = Math.min(
+      pageWidth / canvas.width,
+      pageHeight / canvas.height
+    );
+
+    const printWidth = canvas.width * ratio;
+    const printHeight = canvas.height * ratio;
+
+    const marginX = (pageWidth - printWidth) / 2;
+    const marginY = (pageHeight - printHeight) / 2;
+
+    pdf.addImage(imgData, "JPEG", marginX, marginY, printWidth, printHeight);
+
+    const filename = safe(currentData.titulo, "ficha-propiedad")
+      .replace(/[^a-zA-Z0-9\- ]/g, "")
+      .replace(/\s+/g, "-")
+      .toLowerCase() || "ficha-propiedad";
+
+    pdf.save(`${filename}.pdf`);
+
     setStatus("PDF descargado correctamente.", "success");
   } catch (e) {
     console.error(e);
