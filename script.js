@@ -8,10 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const urlInput = document.getElementById("urlInput");
 
   generateBtn.addEventListener("click", handleGenerate);
-  urlInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleGenerate();
-  });
-
+  urlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") handleGenerate(); });
   copyBtn.addEventListener("click", handleCopyWhatsapp);
   pdfBtn.addEventListener("click", handleDownloadPdf);
 });
@@ -51,30 +48,22 @@ function getItemCode(url) {
 
 async function handleGenerate() {
   const url = document.getElementById("urlInput").value.trim();
-  const pdfCard = document.getElementById("pdf-card");
+  if (!url) return setStatus("Ingresa una URL", "error");
 
-  if (!url) {
-    setStatus("Pega primero una URL de Portal Inmobiliario.", "error");
-    return;
-  }
-
-  setStatus("Procesando publicación…", "info");
+  setStatus("Procesando...", "info");
   setButtonsEnabled(false);
-  if (pdfCard) pdfCard.innerHTML = "";
+  document.getElementById("web-preview-container").innerHTML = ""; // Limpiar previo
 
   try {
     const resp = await fetch(`${BACKEND_URL}?url=${encodeURIComponent(url)}`);
-    if (!resp.ok) {
-      throw new Error(`HTTP ${resp.status}`);
-    }
     const data = await resp.json();
-    if (!data.ok) {
-      throw new Error(data.error || "Error en backend");
-    }
+    if (!data.ok) throw new Error(data.error);
 
     currentData = data;
-
+    // 1. RENDERIZAR VISTA WEB
     renderPropertyCard(data);
+
+    // 2. PREPARAR TEXTO WHATSAPP (Oculto)
     prepareWhatsappText(data);
 
     setButtonsEnabled(true);
@@ -85,6 +74,34 @@ async function handleGenerate() {
     currentData = null;
     setButtonsEnabled(false);
   }
+}
+
+function renderWebPreview(data) {
+  const container = document.getElementById("web-preview-container");
+  const heroUrl = data.main_image_url || "";
+  
+  container.innerHTML = `
+    <article class="property-card">
+      <div class="property-hero">
+        <img src="${heroUrl}" class="hero-image" onerror="this.style.display='none'">
+      </div>
+      <div class="property-info">
+        <h2 class="web-title">${safe(data.titulo)}</h2>
+        <div class="web-price">${formatUF(data.precio_uf)}</div>
+        
+        <div class="web-grid">
+           <div class="web-item"><strong>Programa</strong> ${safe(data.programa)}</div>
+           <div class="web-item"><strong>Sup. Total</strong> ${safe(data.m2_total)} m²</div>
+           <div class="web-item"><strong>Sup. Útil</strong> ${safe(data.m2_utile)} m²</div>
+           <div class="web-item"><strong>Estac/Bod</strong> ${safe(data.estacionamientos)} / ${safe(data.bodegas)}</div>
+        </div>
+
+        <div class="web-desc">
+          ${ (data.ai?.descripcion_ejecutiva || safe(data.descripcion_raw)).substring(0, 300) }...
+        </div>
+      </div>
+    </article>
+  `;
 }
 
 function renderPropertyCard(data) {
@@ -313,6 +330,8 @@ async function handleCopyWhatsapp() {
 // ==========================================
 // FUNCIÓN GENERAR PDF PROFESIONAL
 // ==========================================
+// GENERAR EL PDF OFICIAL (USANDO EL LIENZO OCULTO)
+
 async function handleDownloadPdf() {
   if (!currentData) return;
 
@@ -330,6 +349,24 @@ async function handleDownloadPdf() {
   document.getElementById('pdf-price').textContent = formatUF(currentData.precio_uf);
   document.getElementById('pdf-title').textContent = safe(currentData.titulo).substring(0, 60); // Cortar si es muy largo
   document.getElementById('pdf-address').textContent = "ID: " + getItemCode(currentData.sourceUrl) + " · " + safe(currentData.orientacion, "Santiago");
+  document.getElementById("pdf-desc").textContent = currentData.ai?.descripcion_ejecutiva || currentData.descripcion_raw;
+
+  // Specs
+  // Llenar Specs
+  document.getElementById("pdf-m2-total").textContent = safe(currentData.m2_total) + " m²";
+  document.getElementById("pdf-m2-util").textContent = safe(currentData.m2_utile) + " m²";
+  
+  // Parseamos programa para separar dorm y baños
+  let dorm = "-", banos = "-";
+  if(currentData.programa) {
+      const parts = currentData.programa.split('/');
+      if(parts[0]) dorm = parts[0].replace('D','').trim();
+      if(parts[1]) banos = parts[1].replace('B','').trim();
+  }
+  document.getElementById('pdf-dorm').textContent = dorm;
+  document.getElementById('pdf-banos').textContent = banos;
+  document.getElementById('pdf-estac').textContent = safe(currentData.estacionamientos);
+  document.getElementById('pdf-gc').textContent = "$ " + safe(currentData.gastos_comunes);
   
   // Descripción inteligente (usa la de IA si existe)
   const desc = (currentData.ai && currentData.ai.descripcion_ejecutiva) || safe(currentData.descripcion_raw);
@@ -348,21 +385,6 @@ async function handleDownloadPdf() {
   // Match Cliente
   const match = (currentData.ai && currentData.ai.match_cliente) || "Propiedad con alto potencial.";
   document.getElementById('pdf-match').textContent = match;
-
-  // Specs
-  // Parseamos programa para separar dorm y baños
-  let dorm = "-", banos = "-";
-  if(currentData.programa) {
-      const parts = currentData.programa.split('/');
-      if(parts[0]) dorm = parts[0].replace('D','').trim();
-      if(parts[1]) banos = parts[1].replace('B','').trim();
-  }
-  document.getElementById('pdf-dorm').textContent = dorm;
-  document.getElementById('pdf-banos').textContent = banos;
-  document.getElementById('pdf-m2-total').textContent = safe(currentData.m2_total) + " m²";
-  document.getElementById('pdf-m2-util').textContent = safe(currentData.m2_utile) + " m²";
-  document.getElementById('pdf-estac').textContent = safe(currentData.estacionamientos);
-  document.getElementById('pdf-gc').textContent = "$ " + safe(currentData.gastos_comunes);
 
   // Imágenes
   // Hero Image
@@ -399,16 +421,8 @@ async function handleDownloadPdf() {
   try {
     const template = document.getElementById('pdf-template');
     
-    // html2canvas options
-    const canvas = await html2canvas(template, {
-        scale: 2, // Mayor calidad
-        useCORS: true, // Permitir imágenes externas
-        logging: false,
-        windowWidth: 794, // Ancho A4 en px aprox a 96dpi (210mm)
-        windowHeight: 1123
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const canvas = await html2canvas(template, { scale: 2, useCORS: true });
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
     const pdf = new jsPDF('p', 'mm', 'a4');
     
     // A4 medidas: 210 x 297 mm
