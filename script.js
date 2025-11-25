@@ -322,13 +322,14 @@ async function handleDownloadPdf() {
   }
 
   if (!window.html2canvas || !window.jspdf) {
-    setStatus("Falta alguna librería de PDF (html2canvas o jsPDF). Revisa el index.html.", "error");
+    setStatus("Falta alguna librería de PDF. Revisa el index.html.", "error");
     return;
   }
 
-  const { jsPDF } = window.jspdf;
+    const { jsPDF } = window.jspdf; 
 
-  try {
+    try {
+
     setStatus("Generando PDF…", "info");
 
     // Capturamos la ficha visible como canvas
