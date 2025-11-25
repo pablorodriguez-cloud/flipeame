@@ -487,13 +487,31 @@ async function handleDownloadPdf() {
 
   // Highlights
   const ul = document.getElementById('pdf-highlights');
-  ul.innerHTML = "";
+  ul.innerHTML = ""; // Limpiar lista anterior
+  
+  // Intentamos sacar highlights de la IA, si no hay, dejamos array vacío
   const hls = (currentData.ai && currentData.ai.highlights) ? currentData.ai.highlights : [];
-  hls.slice(0, 5).forEach(h => { // Máximo 5 bullets para que no rompa el diseño
-    const li = document.createElement('li');
-    li.textContent = h;
-    ul.appendChild(li);
-  });
+
+  if (hls.length > 0) {
+    hls.slice(0, 5).forEach(h => {
+      const li = document.createElement('li');
+      li.textContent = h;
+      ul.appendChild(li);
+    });
+  } else {
+    // FALLBACK VISUAL: Si no hay IA, generamos highlights básicos de los datos duros
+    const backupHighlights = [
+        currentData.titulo,
+        `Superficie total: ${safe(currentData.m2_total)} m²`,
+        `Programa: ${safe(currentData.programa)}`,
+        `Barrio / Ubicación: ${safe(currentData.orientacion, "Excelente ubicación")}`
+    ];
+    backupHighlights.forEach(h => {
+        const li = document.createElement('li');
+        li.textContent = h;
+        ul.appendChild(li);
+    });
+  }
 
   // Match Cliente
   const match = (currentData.ai && currentData.ai.match_cliente) || "Propiedad con alto potencial.";
