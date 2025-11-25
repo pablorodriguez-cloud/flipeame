@@ -2,50 +2,72 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Generador de Fichas Flipeame</title>
-
-  <!-- Fuente tipo Flipeame (ajústala si usas otra en el manual de marca) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-
-  <div class="app-shell">
+  <div class="app">
     <header class="app-header">
-      <div class="header-inner">
-        <div class="logo-block">
-          <!-- Reemplaza logo-flipeame.svg por tu archivo real -->
-          <img src="logo-flipeame.svg" alt="Flipeame" class="logo-flipeame" />
-          <div class="header-text">
-            <h1>Generador de Fichas</h1>
-            <p>Uso interno equipo Flipeame</p>
-          </div>
-        </div>
-        <div class="header-pill">
-          v1 · Beta interna
+      <div class="brand">
+        <img src="logo-flipeame.svg" alt="Flipeame" class="brand-logo" />
+        <div>
+          <h1 class="brand-title">Generador de Fichas</h1>
+          <p class="brand-subtitle">Uso interno equipo Flipeame</p>
         </div>
       </div>
+      <span class="badge">v1 · Beta interna</span>
     </header>
 
     <main class="app-main">
-      <section class="toolbar">
-        <div class="input-block">
-          <input id="urlInput" type="text" placeholder="Pega el link de la propiedad desde Portal Inmobiliario" />
-          <button id="generateBtn">Generar Ficha</button>
-          <button id="copyWhatsappBtn" disabled>Copiar texto WhatsApp</button>
+      <section class="url-card">
+        <label for="urlInput" class="url-label">
+          URL de la propiedad en Portal Inmobiliario
+        </label>
+        <div class="url-row">
+          <input
+            id="urlInput"
+            type="text"
+            class="url-input"
+            placeholder="Pega aquí el link completo de la propiedad…"
+          />
+          <button id="generateBtn" class="btn btn-primary">
+            Generar ficha
+          </button>
+          <button
+            id="copyWhatsAppBtn"
+            class="btn btn-secondary"
+            disabled
+          >
+            Copiar texto WhatsApp
+          </button>
+          <button
+            id="downloadPdfBtn"
+            class="btn btn-outline"
+            disabled
+          >
+            Descargar ficha PDF
+          </button>
         </div>
+        <p id="statusMessage" class="status-message"></p>
       </section>
 
-      <section id="resultado">
-        <!-- Aquí se renderiza la ficha -->
+      <section id="cardContainer" class="card-container">
+        <!-- Aquí se inyecta la ficha web -->
       </section>
+
+      <!-- Contenedor oculto para la ficha en PDF (solo uso interno de html2pdf) -->
+      <section id="pdfFicha" class="pdf-ficha">
+        <!-- JS rellenará este bloque antes de generar el PDF -->
+      </section>
+
+      <!-- Textarea oculto solo para armar el texto de WhatsApp -->
+      <textarea id="whatsappText" class="hidden-textarea"></textarea>
     </main>
   </div>
 
+  <!-- Librería para generar PDFs desde HTML -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
