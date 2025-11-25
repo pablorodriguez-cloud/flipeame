@@ -55,10 +55,13 @@
         <p id="statusMessage" class="status-message"></p>
       </section>
 
-      <!-- Contenedor donde va la ficha visible (y que usaremos para el PDF) -->
-      <section id="cardContainer" class="card-container">
-        <!-- OJO: aquí dentro es donde el JS tiene que inyectar la ficha -->
-        <div id="pdf-card"></div>
+      <section class="card-container" id="cardContainer">
+        <!-- Aquí se inyecta la ficha web que ves en pantalla -->
+      </section>
+
+      <!-- Contenedor oculto para la ficha en PDF (solo uso interno de html2pdf) -->
+      <section id="pdfFicha" class="pdf-ficha">
+        <!-- JS rellenará este bloque antes de generar el PDF -->
       </section>
 
       <!-- Textarea oculto solo para armar el texto de WhatsApp -->
@@ -66,11 +69,14 @@
     </main>
   </div>
 
-  <!-- Librerías para capturar la ficha y generar el PDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    </main>
+  </div>
 
-  <!-- Script principal -->
+  <!-- Librería para generar PDFs desde HTML -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <!-- Tu script principal -->
   <script src="script.js"></script>
 </body>
 </html>
+
