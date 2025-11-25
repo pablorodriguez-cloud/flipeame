@@ -1,42 +1,170 @@
+/* =========================================
+   1. VARIABLES Y CONFIGURACIÓN GENERAL
+   ========================================= */
 :root {
   /* Colores Oficiales Manual Flipeame */
   --azul-oscuro: #122B70;
   --azul-medio: #3A8BFA;
   --verde-menta: #8CF0E0;
   --gris-carbon: #3B3B3B;
-  --gris-claro: #F2F2F2;
+  --gris-claro: #F3F4F6;
   --blanco: #FFFFFF;
-  --font-main: 'Montserrat', sans-serif;
+  --borde: #E5E7EB;
+  
+  --font-main: 'Montserrat', system-ui, sans-serif;
 }
+
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background: var(--gris-claro);
+  padding: 0;
+  background-color: var(--gris-claro);
   font-family: var(--font-main);
   color: var(--gris-carbon);
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ... Estilos generales de la App (Botones, Inputs) se mantienen igual ... */
-.app { max-width: 1120px; margin: 20px auto; padding: 0 16px; }
-.url-card { background: var(--blanco); padding: 20px; border-radius: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.05); }
-.btn-primary { background: var(--azul-medio); color: white; border: none; padding: 10px 20px; border-radius: 50px; cursor: pointer; font-weight: 600; }
-.btn-secondary { background: var(--verde-menta); color: var(--azul-oscuro); border: none; padding: 10px 20px; border-radius: 50px; cursor: pointer; font-weight: 600; }
+/* =========================================
+   2. INTERFAZ DE USUARIO (LO QUE VES EN LA APP)
+   ========================================= */
 
-/* ==========================================================
-   ESTILOS DE LA PLANTILLA PDF (GHOST CANVAS)
-   ========================================================== */
+.app {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
 
-/* El contenedor wrapper lo sacamos de la vista pero no usamos display:none
-   porque html2canvas necesita renderizarlo para capturarlo. */
+/* Header de la App */
+.app-header {
+  margin-bottom: 24px;
+}
+.brand-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--azul-oscuro);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+.brand-subtitle {
+  color: #6B7280;
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+/* Tarjeta del Buscador (La caja blanca superior) */
+.url-card {
+  background: var(--blanco);
+  padding: 24px;
+  border-radius: 20px; /* Bordes bien redondeados */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06); /* Sombra suave */
+  border: 1px solid var(--borde);
+}
+
+.url-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--azul-oscuro);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Fila de Input + Botones (Flexbox para que no se amontonen) */
+.url-row {
+  display: flex;
+  gap: 12px; /* Espacio entre elementos */
+  align-items: center;
+  flex-wrap: wrap; /* Permitir que bajen si no caben en móvil */
+}
+
+/* El Input de texto */
+.url-input {
+  flex: 1; /* Ocupa todo el espacio posible */
+  min-width: 300px;
+  padding: 14px 20px;
+  font-size: 1rem;
+  border: 2px solid var(--borde);
+  border-radius: 50px; /* Redondo estilo píldora */
+  outline: none;
+  transition: all 0.2s;
+  font-family: var(--font-main);
+}
+.url-input:focus {
+  border-color: var(--azul-medio);
+  box-shadow: 0 0 0 4px rgba(58, 139, 250, 0.1);
+}
+
+/* Botones Generales */
+.btn {
+  padding: 12px 24px;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.1s, opacity 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+/* Variaciones de botones con colores de marca */
+.btn-primary {
+  background-color: var(--azul-medio);
+  color: white;
+  box-shadow: 0 4px 10px rgba(58, 139, 250, 0.3);
+}
+.btn-secondary {
+  background-color: var(--verde-menta);
+  color: var(--azul-oscuro);
+}
+.btn-outline {
+  background-color: transparent;
+  border: 2px solid var(--azul-oscuro);
+  color: var(--azul-oscuro);
+}
+
+/* Mensajes de estado */
+.status-message {
+  margin-top: 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  min-height: 20px;
+}
+
+/* Preview Web (Tarjeta simple en pantalla para verificar datos) */
+.web-preview-card {
+  margin-top: 30px;
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+.web-preview-img { width: 120px; height: 120px; border-radius: 12px; object-fit: cover; background: #eee; }
+.web-preview-info h3 { margin: 0 0 8px 0; color: var(--azul-oscuro); font-size: 1.2rem; }
+.web-preview-info p { margin: 0; color: #666; font-size: 0.9rem; }
+
+/* =========================================
+   3. PLANTILLA PDF "GHOST" (LO QUE SE IMPRIME)
+   ========================================= */
+
+/* El contenedor wrapper lo sacamos de la vista pero no usamos display:none */
 #pdf-wrapper {
     position: fixed;
-    left: -9999px;
+    left: -9999px; /* Lejos de la pantalla */
     top: 0;
 }
 
 .pdf-template {
     width: 210mm;
-    height: 296mm; /* Un pelín menos de 297 para margen de error */
+    height: 296mm; /* Ajuste fino para evitar hoja en blanco extra */
     background: white;
     position: relative;
     overflow: hidden;
@@ -44,24 +172,25 @@ body {
     flex-direction: column;
 }
 
-/* HEADER */
+/* HEADER PDF */
 .pdf-header {
-    background: var(--azul-oscuro); /* Color Primario 1 */
-    height: 20mm;
+    background: var(--azul-oscuro);
+    height: 22mm;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 15mm;
     color: white;
 }
-.pdf-contact-top { font-size: 10pt; font-weight: 300; letter-spacing: 2px; }
+.pdf-brand h1 { margin: 0; line-height: 1; }
+.pdf-contact-top { font-size: 9pt; font-weight: 300; letter-spacing: 1px; opacity: 0.9; }
 
-/* HERO IMAGE */
+/* HERO IMAGE PDF */
 .pdf-hero-section {
     position: relative;
     width: 100%;
-    height: 90mm; /* Imagen grande impactante */
-    background: #eee;
+    height: 95mm; /* Imagen grande impactante */
+    background: #f0f0f0;
 }
 #pdf-hero-img {
     width: 100%;
@@ -72,128 +201,137 @@ body {
     position: absolute;
     bottom: 0;
     right: 15mm;
-    background: var(--azul-medio); /* Azul Vibrante */
+    background: var(--azul-medio);
     color: white;
-    padding: 4mm 8mm;
-    font-size: 18pt;
-    font-weight: 700;
-    border-top-left-radius: 10px; /* Esquina redondeada estilo marca */
+    padding: 3mm 10mm;
+    font-size: 16pt;
+    font-weight: 800;
+    border-top-left-radius: 12px;
+    box-shadow: -4px -4px 10px rgba(0,0,0,0.1);
 }
 
-/* BODY */
+/* BODY PDF */
 .pdf-body {
     flex: 1;
     display: grid;
-    grid-template-columns: 1.4fr 0.8fr; /* Columna ancha izq, angosta der */
-    gap: 10mm;
+    grid-template-columns: 60% 35%; /* Layout asimétrico elegante */
+    gap: 5%;
     padding: 10mm 15mm;
 }
 
-/* Columna Principal */
+/* Columna Izquierda PDF */
 .pdf-property-title {
-    font-size: 20pt;
-    font-weight: 700;
+    font-size: 18pt;
+    font-weight: 800;
     color: var(--azul-oscuro);
-    margin: 0 0 5px 0;
+    margin: 0 0 4px 0;
     line-height: 1.1;
+    text-transform: uppercase;
 }
 .pdf-property-address {
-    font-size: 10pt;
+    font-size: 9pt;
     color: var(--gris-carbon);
     margin: 0;
+    font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 .pdf-divider {
-    height: 4px;
-    width: 50px;
-    background: var(--verde-menta); /* Acento */
+    height: 3px;
+    width: 40px;
+    background: var(--verde-menta);
     margin: 6mm 0;
     border-radius: 2px;
 }
 .pdf-section-title {
-    font-size: 10pt;
-    font-weight: 700;
+    font-size: 9pt;
+    font-weight: 800;
     color: var(--azul-medio);
     margin-bottom: 3mm;
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 .pdf-text-content {
     font-size: 9pt;
-    line-height: 1.4;
+    line-height: 1.5;
     text-align: justify;
-    color: #555;
+    color: #4B5563;
     white-space: pre-line;
+    margin-bottom: 8mm;
 }
 .pdf-highlights-list {
     margin: 0;
-    padding-left: 5mm;
-    font-size: 9pt;
-    line-height: 1.5;
+    padding-left: 0;
+    list-style: none;
 }
-.pdf-highlights-list li::marker {
+.pdf-highlights-list li {
+    position: relative;
+    padding-left: 6mm;
+    margin-bottom: 2mm;
+    font-size: 8.5pt;
+    line-height: 1.4;
+    color: #374151;
+}
+.pdf-highlights-list li::before {
+    content: "•";
     color: var(--azul-medio);
+    font-weight: bold;
+    position: absolute;
+    left: 0;
 }
 
-/* Columna Lateral */
+/* Columna Derecha PDF */
 .pdf-gallery-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-rows: repeat(3, 35mm);
     gap: 3mm;
     margin-bottom: 8mm;
 }
 .pdf-gallery-img {
     width: 100%;
-    height: 35mm;
+    height: 100%;
     object-fit: cover;
-    border-radius: 6px; /* Bordes redondeados identidad visual */
+    border-radius: 8px;
+    border: 1px solid #eee;
 }
 
 .pdf-specs-box {
-    background: #F8F9FA;
+    background: #F9FAFB;
     padding: 5mm;
-    border-radius: 8px;
+    border-radius: 12px;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 4mm;
-    border: 1px solid #eee;
+    gap: 4mm 2mm;
+    border: 1px solid #F3F4F6;
 }
 .spec-item { display: flex; flex-direction: column; }
-.spec-item.full-width { grid-column: span 2; }
-.spec-label { font-size: 6pt; color: #888; letter-spacing: 0.5px; font-weight: 600; }
-.spec-value { font-size: 10pt; color: var(--azul-oscuro); font-weight: 700; }
+.spec-item.full-width { grid-column: span 2; padding-top: 2mm; border-top: 1px solid #eee; }
+.spec-label { font-size: 5.5pt; color: #9CA3AF; letter-spacing: 0.5px; font-weight: 700; text-transform: uppercase; }
+.spec-value { font-size: 9pt; color: var(--azul-oscuro); font-weight: 700; }
 
 .pdf-match-box {
-    margin-top: 8mm;
-    background: rgba(140, 240, 224, 0.2); /* Verde menta muy suave */
+    margin-top: 6mm;
+    background: linear-gradient(to right, rgba(140, 240, 224, 0.3), rgba(140, 240, 224, 0.1));
     padding: 5mm;
     border-radius: 8px;
-    border-left: 4px solid var(--verde-menta);
+    border-left: 3px solid var(--verde-menta);
 }
-.match-title { font-size: 8pt; font-weight: 700; color: var(--azul-oscuro); margin-bottom: 2mm; }
-.match-text { font-size: 8pt; line-height: 1.3; font-style: italic; margin: 0; }
+.match-title { font-size: 7pt; font-weight: 800; color: var(--azul-oscuro); margin-bottom: 2mm; text-transform: uppercase; }
+.match-text { font-size: 8pt; line-height: 1.35; font-style: italic; color: #4B5563; margin: 0; }
 
-/* FOOTER */
+/* FOOTER PDF */
 .pdf-footer {
-    height: 25mm;
-    background: var(--gris-carbon); /* Neutro oscuro */
+    height: 20mm;
+    background: var(--gris-carbon);
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0 15mm;
     color: white;
-    margin-top: auto; /* Empuja al fondo */
+    margin-top: auto;
 }
-.footer-left { font-size: 8pt; line-height: 1.4; }
-.agent-name { font-weight: 700; color: var(--verde-menta); }
+.agent-name { font-weight: 800; color: var(--verde-menta); font-size: 8pt; }
+.agent-contact { font-size: 7pt; opacity: 0.8; margin-top: 2px; }
 .qr-placeholder {
-    width: 15mm;
-    height: 15mm;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--azul-oscuro);
-    font-weight: 700;
-    font-size: 6pt;
+    font-size: 10pt; font-weight: 800; letter-spacing: 2px; color: var(--verde-menta);
 }
