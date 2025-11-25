@@ -47,7 +47,20 @@ function getItemCode(url) {
 // ----------------- GENERAR FICHA -------------------
 
 async function handleGenerate() {
-  const url = document.getElementById("urlInput").value.trim();
+  // 1. OJO: Cambiamos 'const' por 'let' para poder modificar la URL
+  let url = document.getElementById("urlInput").value.trim();
+
+  // --- AQUÍ EMPIEZA LA CORRECCIÓN ---
+  // Cortamos todo lo que venga después de un '#' (rastreadores)
+  if (url.indexOf("#") !== -1) {
+    url = url.split("#")[0];
+  }
+  // Cortamos todo lo que venga después de un '?' (parámetros extra)
+  if (url.indexOf("?") !== -1) {
+    url = url.split("?")[0];
+  }
+  // --- AQUÍ TERMINA LA CORRECCIÓN ---
+
   if (!url) return setStatus("Ingresa una URL", "error");
 
   setStatus("Procesando...", "info");
@@ -55,13 +68,20 @@ async function handleGenerate() {
   document.getElementById("web-preview-container").innerHTML = ""; // Limpiar previo
 
   try {
+    // Fíjate que ahora usamos la variable 'url' ya limpia
     const resp = await fetch(`${BACKEND_URL}?url=${encodeURIComponent(url)}`);
     const data = await resp.json();
     if (!data.ok) throw new Error(data.error);
 
     currentData = data;
-    // 1. RENDERIZAR VISTA WEB
-    renderPropertyCard(data);
+    
+    // 1. RENDERIZAR VISTA WEB (Usando la función renderWebPreview que corregimos antes)
+    if (typeof renderWebPreview === "function") {
+        renderWebPreview(data);
+    } else {
+        // Fallback por si acaso tienes el nombre antiguo
+        renderPropertyCard(data);
+    }
 
     // 2. PREPARAR TEXTO WHATSAPP (Oculto)
     prepareWhatsappText(data);
@@ -75,8 +95,6 @@ async function handleGenerate() {
     setButtonsEnabled(false);
   }
 }
-
-// Reemplaza SOLAMENTE la función renderWebPreview con esta:
 
 function renderWebPreview(data) {
   const container = document.getElementById("web-preview-container");
