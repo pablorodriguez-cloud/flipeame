@@ -310,64 +310,118 @@ async function handleCopyWhatsapp() {
   }
 }
 
-// ----------------- PDF (html2canvas + jsPDF) -------------------
-
+// ==========================================
+// FUNCIÓN GENERAR PDF PROFESIONAL
+// ==========================================
 async function handleDownloadPdf() {
   if (!currentData) return;
 
-  const pdfCard = document.getElementById("pdf-card");
-  if (!pdfCard) {
-    setStatus("No encontré la ficha para generar el PDF.", "error");
-    return;
-  }
-
+  // Verificar librerías
   if (!window.html2canvas || !window.jspdf) {
-    setStatus("Falta alguna librería de PDF. Revisa el index.html.", "error");
+    setStatus("Error: Librerías PDF no cargadas.", "error");
     return;
   }
+  const { jsPDF } = window.jspdf;
 
-    const { jsPDF } = window.jspdf; 
+  setStatus("Diseñando ficha de alta calidad...", "info");
 
-    try {
+  // 1. RELLENAR EL TEMPLATE OCULTO CON LOS DATOS
+  // ---------------------------------------------
+  document.getElementById('pdf-price').textContent = formatUF(currentData.precio_uf);
+  document.getElementById('pdf-title').textContent = safe(currentData.titulo).substring(0, 60); // Cortar si es muy largo
+  document.getElementById('pdf-address').textContent = "ID: " + getItemCode(currentData.sourceUrl) + " · " + safe(currentData.orientacion, "Santiago");
+  
+  // Descripción inteligente (usa la de IA si existe)
+  const desc = (currentData.ai && currentData.ai.descripcion_ejecutiva) || safe(currentData.descripcion_raw);
+  document.getElementById('pdf-desc').textContent = desc;
 
-    setStatus("Generando PDF…", "info");
+  // Highlights
+  const ul = document.getElementById('pdf-highlights');
+  ul.innerHTML = "";
+  const hls = (currentData.ai && currentData.ai.highlights) ? currentData.ai.highlights : [];
+  hls.slice(0, 5).forEach(h => { // Máximo 5 bullets para que no rompa el diseño
+    const li = document.createElement('li');
+    li.textContent = h;
+    ul.appendChild(li);
+  });
 
-    // Capturamos la ficha visible como canvas
-    const canvas = await html2canvas(pdfCard, {
-      scale: 2,
-      useCORS: true
+  // Match Cliente
+  const match = (currentData.ai && currentData.ai.match_cliente) || "Propiedad con alto potencial.";
+  document.getElementById('pdf-match').textContent = match;
+
+  // Specs
+  // Parseamos programa para separar dorm y baños
+  let dorm = "-", banos = "-";
+  if(currentData.programa) {
+      const parts = currentData.programa.split('/');
+      if(parts[0]) dorm = parts[0].replace('D','').trim();
+      if(parts[1]) banos = parts[1].replace('B','').trim();
+  }
+  document.getElementById('pdf-dorm').textContent = dorm;
+  document.getElementById('pdf-banos').textContent = banos;
+  document.getElementById('pdf-m2-total').textContent = safe(currentData.m2_total) + " m²";
+  document.getElementById('pdf-m2-util').textContent = safe(currentData.m2_utile) + " m²";
+  document.getElementById('pdf-estac').textContent = safe(currentData.estacionamientos);
+  document.getElementById('pdf-gc').textContent = "$ " + safe(currentData.gastos_comunes);
+
+  // Imágenes
+  // Hero Image
+  const heroUrl = currentData.main_image_url || (currentData.image_urls ? currentData.image_urls[0] : null);
+  const heroImgEl = document.getElementById('pdf-hero-img');
+  
+  // Promesa para asegurar que la imagen cargó antes de imprimir
+  await new Promise((resolve) => {
+      heroImgEl.onload = resolve;
+      heroImgEl.onerror = resolve; // Continuar aunque falle
+      heroImgEl.src = heroUrl;
+  });
+
+  // Galería Lateral (3 fotos)
+  const sideGrid = document.getElementById('pdf-gallery-grid');
+  sideGrid.innerHTML = "";
+  const sidePics = (currentData.image_urls || []).slice(1, 4); // Tomamos la 2, 3 y 4
+  
+  // Cargar imágenes laterales secuencialmente
+  for (const url of sidePics) {
+      const img = document.createElement('img');
+      img.className = 'pdf-gallery-img';
+      img.crossOrigin = "anonymous"; // CRÍTICO para html2canvas
+      sideGrid.appendChild(img);
+      await new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+          img.src = url;
+      });
+  }
+
+  // 2. GENERAR CANVAS Y PDF
+  // ---------------------------------------------
+  try {
+    const template = document.getElementById('pdf-template');
+    
+    // html2canvas options
+    const canvas = await html2canvas(template, {
+        scale: 2, // Mayor calidad
+        useCORS: true, // Permitir imágenes externas
+        logging: false,
+        windowWidth: 794, // Ancho A4 en px aprox a 96dpi (210mm)
+        windowHeight: 1123
     });
 
-    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    
+    // A4 medidas: 210 x 297 mm
+    pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
 
-    const pdf = new jsPDF("p", "mm", "a4");
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-
-    // Calculamos escala para que la ficha quepa completa en la página
-    const ratio = Math.min(
-      pageWidth / canvas.width,
-      pageHeight / canvas.height
-    );
-
-    const printWidth = canvas.width * ratio;
-    const printHeight = canvas.height * ratio;
-
-    const marginX = (pageWidth - printWidth) / 2;
-    const marginY = (pageHeight - printHeight) / 2;
-
-    pdf.addImage(imgData, "JPEG", marginX, marginY, printWidth, printHeight);
-
-    const filename = safe(currentData.titulo, "ficha-propiedad")
-      .replace(/[^a-zA-Z0-9\- ]/g, "")
-      .replace(/\s+/g, "-")
-      .toLowerCase() || "ficha-propiedad";
-
+    // Nombre archivo limpio
+    const filename = "Ficha-Flipeame-" + (currentData.titulo || "propiedad").replace(/[^a-z0-9]/gi, '-').substring(0,20);
     pdf.save(`${filename}.pdf`);
 
-    setStatus("PDF descargado correctamente.", "success");
-  } catch (e) {
-    console.error(e);
-    setStatus("Ocurrió un problema al generar el PDF.", "error");
+    setStatus("¡PDF Oficial descargado con éxito!", "success");
+
+  } catch (err) {
+    console.error(err);
+    setStatus("Error generando el PDF. Revisa la consola.", "error");
   }
 }
