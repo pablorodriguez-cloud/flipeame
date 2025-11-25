@@ -20,10 +20,12 @@
     </header>
 
     <main class="app-main">
+      <!-- Tarjeta de URL + botones -->
       <section class="url-card">
         <label for="urlInput" class="url-label">
           URL de la propiedad en Portal Inmobiliario
         </label>
+
         <div class="url-row">
           <input
             id="urlInput"
@@ -49,13 +51,14 @@
             Descargar ficha PDF
           </button>
         </div>
+
         <p id="statusMessage" class="status-message"></p>
       </section>
 
+      <!-- Contenedor donde va la ficha visible (y que usaremos para el PDF) -->
       <section id="cardContainer" class="card-container">
-      <!-- Dentro de este div vamos a inyectar la ficha que se ve en pantalla
-           y que además se usará para el PDF -->
-      <div id="pdf-card"></div>
+        <!-- OJO: aquí dentro es donde el JS tiene que inyectar la ficha -->
+        <div id="pdf-card"></div>
       </section>
 
       <!-- Textarea oculto solo para armar el texto de WhatsApp -->
@@ -67,7 +70,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-  <!-- Tu script principal -->
+  <!-- Script principal -->
   <script src="script.js"></script>
 </body>
 </html>
