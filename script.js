@@ -164,7 +164,7 @@ function renderWebPreview(data) {
 
           <div class="property-section">
             <h3>Descripción Ejecutiva</h3>
-            <p>${descripcion.substring(0, 400)}${descripcion.length > 400 ? '...' : ''}</p>
+            <p>${descripcion.substring(0, 800)}${descripcion.length > 800 ? '...' : ''}</p>
           </div>
         </div>
       </div>
