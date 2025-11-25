@@ -459,6 +459,10 @@ async function handleDownloadPdf() {
 
   // 1. RELLENAR EL TEMPLATE OCULTO CON LOS DATOS
   // ---------------------------------------------
+  // Usamos el título de marketing si existe, sino el original
+    const tituloFinal = currentData.ai?.titulo_marketing || currentData.titulo;
+    document.getElementById("pdf-title").textContent = safe(tituloFinal).substring(0, 80);
+  
   document.getElementById('pdf-price').textContent = formatUF(currentData.precio_uf);
   document.getElementById('pdf-title').textContent = safe(currentData.titulo).substring(0, 60); // Cortar si es muy largo
   document.getElementById('pdf-address').textContent = "ID: " + getItemCode(currentData.sourceUrl) + " · " + safe(currentData.orientacion, "Santiago");
