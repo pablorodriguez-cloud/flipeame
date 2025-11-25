@@ -10,7 +10,6 @@
   <div class="app">
     <header class="app-header">
       <div class="brand">
-        <img src="logo-flipeame.svg" alt="Flipeame" class="brand-logo" />
         <div>
           <h1 class="brand-title">Generador de Fichas</h1>
           <p class="brand-subtitle">Uso interno equipo Flipeame</p>
@@ -20,7 +19,6 @@
     </header>
 
     <main class="app-main">
-      <!-- Tarjeta de URL + botones -->
       <section class="url-card">
         <label for="urlInput" class="url-label">
           URL de la propiedad en Portal Inmobiliario
@@ -55,28 +53,16 @@
         <p id="statusMessage" class="status-message"></p>
       </section>
 
-      <section class="card-container" id="cardContainer">
-        <!-- Aquí se inyecta la ficha web que ves en pantalla -->
-      </section>
+      <section class="card-container" id="pdf-card">
+        </section>
 
-      <!-- Contenedor oculto para la ficha en PDF (solo uso interno de html2pdf) -->
-      <section id="pdfFicha" class="pdf-ficha">
-        <!-- JS rellenará este bloque antes de generar el PDF -->
-      </section>
-
-      <!-- Textarea oculto solo para armar el texto de WhatsApp -->
       <textarea id="whatsappText" class="hidden-textarea"></textarea>
     </main>
   </div>
 
-    </main>
-  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-  <!-- Librería para generar PDFs desde HTML -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
-  <!-- Tu script principal -->
   <script src="script.js"></script>
 </body>
 </html>
-
