@@ -76,32 +76,127 @@ async function handleGenerate() {
   }
 }
 
+// Reemplaza SOLAMENTE la función renderWebPreview con esta:
+
 function renderWebPreview(data) {
   const container = document.getElementById("web-preview-container");
-  const heroUrl = data.main_image_url || "";
   
+  // Preparar datos visuales
+  const hero = data.main_image_url || (data.image_urls && data.image_urls[0]) || "";
+  const thumbs = (data.image_urls || []).slice(0, 6); // Primeras 6 fotos para la galería
+  const titulo = safe(data.titulo);
+  const precio = formatUF(data.precio_uf);
+  
+  // Descripción inteligente
+  const descripcion = (data.ai && data.ai.descripcion_ejecutiva) || safe(data.descripcion_raw);
+  const highlights = (data.ai && data.ai.highlights) ? data.ai.highlights : [];
+  const match = (data.ai && data.ai.match_cliente) || "";
+
+  // Construir HTML Estilo V1
   container.innerHTML = `
     <article class="property-card">
-      <div class="property-hero">
-        <img src="${heroUrl}" class="hero-image" onerror="this.style.display='none'">
-      </div>
-      <div class="property-info">
-        <h2 class="web-title">${safe(data.titulo)}</h2>
-        <div class="web-price">${formatUF(data.precio_uf)}</div>
+      <div class="property-header">
         
-        <div class="web-grid">
-           <div class="web-item"><strong>Programa</strong> ${safe(data.programa)}</div>
-           <div class="web-item"><strong>Sup. Total</strong> ${safe(data.m2_total)} m²</div>
-           <div class="web-item"><strong>Sup. Útil</strong> ${safe(data.m2_utile)} m²</div>
-           <div class="web-item"><strong>Estac/Bod</strong> ${safe(data.estacionamientos)} / ${safe(data.bodegas)}</div>
+        <div class="property-hero">
+          <div class="hero-image-wrapper">
+            <img src="${hero}" alt="Foto Principal" class="hero-image" id="webHeroImage" crossorigin="anonymous">
+          </div>
+          
+          ${thumbs.length > 1 ? `
+            <div class="gallery-strip" id="webGalleryStrip">
+              ${thumbs.map((u, idx) => `
+                <button class="gallery-thumb ${idx === 0 ? 'active' : ''}" data-url="${u}">
+                  <img src="${u}" alt="Thumb ${idx + 1}" crossorigin="anonymous">
+                </button>
+              `).join('')}
+            </div>
+          ` : ''}
         </div>
 
-        <div class="web-desc">
-          ${ (data.ai?.descripcion_ejecutiva || safe(data.descripcion_raw)).substring(0, 300) }...
+        <div class="property-main">
+          <h2 class="property-title">${titulo}</h2>
+          <div class="property-subid">${precio}</div>
+
+          <div class="property-grid">
+            <div>
+              <span class="property-label">Programa</span>
+              <span class="property-value">${safe(data.programa)}</span>
+            </div>
+            <div>
+              <span class="property-label">Superficie Total</span>
+              <span class="property-value">${safe(data.m2_total)} m²</span>
+            </div>
+            <div>
+              <span class="property-label">Superficie Útil</span>
+              <span class="property-value">${safe(data.m2_utile)} m²</span>
+            </div>
+            <div>
+              <span class="property-label">Estac. / Bodegas</span>
+              <span class="property-value">${safe(data.estacionamientos)} / ${safe(data.bodegas)}</span>
+            </div>
+            <div>
+              <span class="property-label">Gastos Comunes</span>
+              <span class="property-value">${data.gastos_comunes !== 'N/D' ? '$ '+data.gastos_comunes : 'N/D'}</span>
+            </div>
+            <div>
+              <span class="property-label">Orientación</span>
+              <span class="property-value">${safe(data.orientacion)}</span>
+            </div>
+          </div>
+
+          <div class="property-section">
+            <h3>Descripción Ejecutiva</h3>
+            <p>${descripcion.substring(0, 400)}${descripcion.length > 400 ? '...' : ''}</p>
+          </div>
         </div>
+      </div>
+
+      ${highlights.length > 0 ? `
+        <div class="property-section">
+          <h3>Highlights</h3>
+          <ul>
+            ${highlights.map(h => `<li>${h}</li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      ${match ? `
+        <div class="property-section">
+          <h3>Match con Cliente</h3>
+          <p style="font-style:italic; color:#3A8BFA;">${match}</p>
+        </div>
+      ` : ''}
+
+      <div class="internal-footer">
+        Vista previa para uso interno. Para enviar al cliente, usa el botón "Descargar PDF Oficial".
       </div>
     </article>
   `;
+
+  // REACTIVAR LA LÓGICA DE CLIC EN MINIATURAS (Lo que extrañabas de la v1)
+  const heroImg = document.getElementById("webHeroImage");
+  const strip = document.getElementById("webGalleryStrip");
+  
+  if (heroImg && strip) {
+    strip.addEventListener("click", (e) => {
+      const btn = e.target.closest(".gallery-thumb");
+      if (!btn) return;
+      
+      const newUrl = btn.getAttribute("data-url");
+      if (newUrl) {
+        // Efecto visual suave
+        heroImg.style.opacity = 0;
+        setTimeout(() => {
+          heroImg.src = newUrl;
+          heroImg.style.opacity = 1;
+        }, 200);
+
+        // Actualizar clase active
+        strip.querySelectorAll(".gallery-thumb").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+      }
+    });
+  }
 }
 
 function renderPropertyCard(data) {
