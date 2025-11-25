@@ -1,414 +1,481 @@
-const btn = document.getElementById("generateBtn");
-const copyBtn = document.getElementById("copyWhatsappBtn");
-const input = document.getElementById("urlInput");
-const resultado = document.getElementById("resultado");
+const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwksM2kjeV5ffPMv-efll2GiKQicyaoEpRtgNyYBBAdm3wNjofSHccnTS01TI5IsvQ/exec"
+let currentData = null;
 
-// URL de tu Web App de Apps Script (backend)
-const BACKEND_URL = "https://script.google.com/macros/s/AKfycbwksM2kjeV5ffPMv-efll2GiKQicyaoEpRtgNyYBBAdm3wNjofSHccnTS01TI5IsvQ/exec";
+document.addEventListener("DOMContentLoaded", () => {
+  const generateBtn = document.getElementById("generateBtn");
+  const copyBtn = document.getElementById("copyWhatsAppBtn");
+  const pdfBtn = document.getElementById("downloadPdfBtn");
+  const urlInput = document.getElementById("urlInput");
 
-let lastWhatsappText = null;
+  generateBtn.addEventListener("click", handleGenerate);
+  urlInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleGenerate();
+  });
 
-let currentImages = [];
-let selectedImagesForPdf = [];
-
-// Eventos
-btn.addEventListener("click", handleGenerate);
-
-input.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    handleGenerate();
-  }
+  copyBtn.addEventListener("click", handleCopyWhatsapp);
+  pdfBtn.addEventListener("click", handleDownloadPdf);
 });
 
-copyBtn.addEventListener("click", async () => {
-  if (!lastWhatsappText) return;
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(lastWhatsappText);
-      copyBtn.textContent = "Copiado ✅";
-      setTimeout(() => {
-        copyBtn.textContent = "Copiar texto WhatsApp";
-      }, 2000);
-    } else {
-      alert("Tu navegador no permite copiar automáticamente. Copia manualmente:\n\n" + lastWhatsappText);
-    }
-  } catch (err) {
-    alert("No se pudo copiar el texto. Puedes copiarlo manualmente:\n\n" + lastWhatsappText);
-  }
-});
+function setStatus(message, type = "info") {
+  const el = document.getElementById("statusMessage");
+  el.textContent = message || "";
+  el.style.color =
+    type === "error" ? "#b91c1c" : type === "success" ? "#166534" : "#6b7280";
+}
+
+function setButtonsEnabled(hasFicha) {
+  document.getElementById("copyWhatsAppBtn").disabled = !hasFicha;
+  document.getElementById("downloadPdfBtn").disabled = !hasFicha;
+}
+
+function formatUF(val) {
+  if (!val || val === "N/D" || val === "No disponible") return "N/D";
+  const cleaned = String(val).replace(/\./g, "");
+  const num = Number(cleaned);
+  if (Number.isNaN(num)) return "UF " + val;
+  return "UF " + num.toLocaleString("es-CL");
+}
+
+function safe(val, fallback = "N/D") {
+  if (!val || val === "N/D" || val === "No disponible") return fallback;
+  return val;
+}
+
+function getItemCode(url) {
+  if (!url) return "";
+  const m = url.match(/(MLC-\d+)/i);
+  return m ? m[1] : "";
+}
+
+// ----------------- GENERAR FICHA -------------------
 
 async function handleGenerate() {
-  const rawUrl = input.value.trim();
-  if (!rawUrl) {
-    alert("Pega un link válido de propiedad.");
+  const url = document.getElementById("urlInput").value.trim();
+  const cardContainer = document.getElementById("cardContainer");
+
+  if (!url) {
+    setStatus("Pega primero una URL de Portal Inmobiliario.", "error");
     return;
   }
 
-  const url = normalizePropertyUrl(rawUrl);
-
-  resultado.innerHTML = "Generando ficha, un momento...";
-  copyBtn.disabled = true;
-  lastWhatsappText = null;
+  setStatus("Procesando publicación…", "info");
+  setButtonsEnabled(false);
+  cardContainer.innerHTML = "";
 
   try {
     const resp = await fetch(`${BACKEND_URL}?url=${encodeURIComponent(url)}`);
-    if (!resp.ok) throw new Error("Error en respuesta del servidor");
-
+    if (!resp.ok) {
+      throw new Error(`HTTP ${resp.status}`);
+    }
     const data = await resp.json();
-
     if (!data.ok) {
-      resultado.innerHTML = `
-        <div class="ficha error">
-          <p>Error desde backend:</p>
-          <pre>${data.error || "Error desconocido"}</pre>
-        </div>
-      `;
-      return;
+      throw new Error(data.error || "Error en backend");
     }
 
-    // Render ficha visual
-    resultado.innerHTML = renderFicha(data);
-    attachGalleryHandlers();
+    currentData = data;
 
-    // Generar texto de WhatsApp y guardarlo solo para el botón
-    const ai = data.ai || {};
-    const precioUFNum = parseNumber(data.precio_uf);
-    const m2UtileNum = parseNumber(data.m2_utile);
-    const m2TotalNum = parseNumber(data.m2_total);
+    renderPropertyCard(data);
+    prepareWhatsappText(data);
 
-    const ufM2Util = (precioUFNum && m2UtileNum)
-      ? (precioUFNum / m2UtileNum).toFixed(0)
-      : null;
-
-    const ufM2Total = (precioUFNum && m2TotalNum)
-      ? (precioUFNum / m2TotalNum).toFixed(0)
-      : null;
-
-    lastWhatsappText = buildWhatsappText(data, ai, {
-      ufM2Util,
-      ufM2Total
-    });
-    copyBtn.disabled = false;
-    copyBtn.textContent = "Copiar texto WhatsApp";
-
+    setButtonsEnabled(true);
+    setStatus("Ficha generada correctamente.", "success");
   } catch (err) {
     console.error(err);
-    resultado.innerHTML = `
-      <div class="ficha error">
-        <p>Ocurrió un error conectando con el backend.</p>
-        <p>${err.message}</p>
+    setStatus("No pude generar la ficha. Revisa la URL o inténtalo de nuevo.", "error");
+    currentData = null;
+    setButtonsEnabled(false);
+  }
+}
+
+function renderPropertyCard(data) {
+  const container = document.getElementById("cardContainer");
+  const titulo = safe(data.titulo, "Propiedad en venta");
+  const itemCode = getItemCode(data.sourceUrl);
+  const precio = formatUF(data.precio_uf);
+
+  const descripcion =
+    (data.ai && data.ai.descripcion_ejecutiva) ||
+    safe(data.descripcion_raw, "Descripción no disponible");
+
+  const highlights =
+    (data.ai && Array.isArray(data.ai.highlights) && data.ai.highlights.length
+      ? data.ai.highlights
+      : []
+    );
+
+  const matchCliente =
+    (data.ai && data.ai.match_cliente) ||
+    "Ficha pensada para ayudar al equipo a calzar la propiedad con el perfil adecuado de cliente.";
+
+  const hero = data.main_image_url || (data.image_urls && data.image_urls[0]) || "";
+  const thumbs = (data.image_urls || []).slice(0, 8);
+
+  container.innerHTML = `
+    <article class="property-card">
+      <div class="property-header">
+        <div class="property-hero">
+          <div class="hero-image-wrapper">
+            ${
+              hero
+                ? `<img src="${hero}" alt="Foto propiedad" class="hero-image" id="heroImage">`
+                : `<div class="hero-image" style="background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:#9ca3af;">Sin imagen</div>`
+            }
+          </div>
+          ${
+            thumbs.length > 1
+              ? `
+          <div class="gallery-strip" id="galleryStrip">
+            ${thumbs
+              .map(
+                (u, idx) => `
+              <button class="gallery-thumb ${
+                idx === 0 ? "active" : ""
+              }" data-url="${u}">
+                <img src="${u}" alt="Foto ${idx + 1}">
+              </button>
+            `
+              )
+              .join("")}
+          </div>
+          `
+              : ""
+          }
+        </div>
+
+        <div class="property-main">
+          <h2 class="property-title">${titulo}</h2>
+          <p class="property-subid">
+            ${itemCode ? `ID Ficha: ${itemCode} · ` : ""}${precio}
+          </p>
+
+          <div class="property-grid">
+            <div>
+              <span class="property-label">Programa</span>
+              <span class="property-value">${safe(data.programa)}</span>
+            </div>
+            <div>
+              <span class="property-label">Útil (m²)</span>
+              <span class="property-value">${safe(data.m2_utile)}</span>
+            </div>
+            <div>
+              <span class="property-label">Total (m²)</span>
+              <span class="property-value">${safe(data.m2_total)}</span>
+            </div>
+            <div>
+              <span class="property-label">Terraza (m²)</span>
+              <span class="property-value">${safe(data.m2_terraza)}</span>
+            </div>
+            <div>
+              <span class="property-label">Estac. / Bodegas</span>
+              <span class="property-value">${safe(
+                data.estacionamientos
+              )} estac · ${safe(data.bodegas)} bod</span>
+            </div>
+            <div>
+              <span class="property-label">G. comunes aprox</span>
+              <span class="property-value">${
+                data.gastos_comunes && data.gastos_comunes !== "N/D"
+                  ? "$ " + data.gastos_comunes
+                  : "N/D"
+              }</span>
+            </div>
+            <div>
+              <span class="property-label">Orientación</span>
+              <span class="property-value">${safe(data.orientacion)}</span>
+            </div>
+            <div>
+              <span class="property-label">Piso</span>
+              <span class="property-value">${safe(data.piso)}</span>
+            </div>
+            <div>
+              <span class="property-label">Antigüedad</span>
+              <span class="property-value">${safe(data.antiguedad)}</span>
+            </div>
+          </div>
+        </div>
       </div>
-    `;
-    copyBtn.disabled = true;
-    lastWhatsappText = null;
-  }
-}
 
-// Normaliza URL del aviso (se come el #polycard y similares)
-function normalizePropertyUrl(url) {
-  const parts = url.split(" ");
-  url = parts[0];
+      <section class="property-section">
+        <h3>Descripción ejecutiva</h3>
+        <p>${descripcion}</p>
+      </section>
 
-  const hashIdx = url.indexOf("#");
-  if (hashIdx !== -1) {
-    url = url.substring(0, hashIdx);
-  }
-
-  return url.trim();
-}
-
-// Parsear UF y m2 a número
-function parseNumber(str) {
-  if (!str || str === "N/D") return null;
-  const clean = String(str).replace(/\./g, "").replace(",", ".");
-  const num = Number(clean);
-  return Number.isFinite(num) ? num : null;
-}
-
-// Sacar ID MLC-xxxx desde la URL
-function getPortalId(sourceUrl) {
-  if (!sourceUrl) return null;
-  const m = sourceUrl.match(/\/(MLC-\d+)-/i);
-  return m ? m[1] : null;
-}
-
-// Hace que las miniaturas cambien la foto principal al hacer click
-function attachGalleryHandlers() {
-  const main = document.querySelector(".main-photo");
-  const thumbs = document.querySelectorAll(".thumb-photo");
-  if (!main || !thumbs.length) return;
-
-  thumbs.forEach((thumb) => {
-    thumb.addEventListener("click", () => {
-      const url = thumb.dataset.photoUrl || thumb.src;
-      if (!url) return;
-
-      // 1) Cambiar la foto grande
-      main.src = url;
-      thumbs.forEach(t => t.classList.remove("active-thumb"));
-      thumb.classList.add("active-thumb");
-
-      // 2) Toggle selección para PDF
-      const currentlySelected = thumb.dataset.selected === "true";
-
-      if (currentlySelected) {
-        // desmarcar
-        thumb.dataset.selected = "false";
-        thumb.classList.remove("selected-thumb");
-        selectedImagesForPdf = selectedImagesForPdf.filter(u => u !== url);
-      } else {
-        // marcar
-        thumb.dataset.selected = "true";
-        thumb.classList.add("selected-thumb");
-        if (!selectedImagesForPdf.includes(url)) {
-          selectedImagesForPdf.push(url);
-        }
+      ${
+        highlights.length
+          ? `
+      <section class="property-section">
+        <h3>Highlights</h3>
+        <ul>
+          ${highlights.map((h) => `<li>${h}</li>`).join("")}
+        </ul>
+      </section>
+      `
+          : ""
       }
 
-      // (por ahora solo dejamos el estado listo;
-      //  cuando creemos el PDF, usaremos selectedImagesForPdf)
+      <section class="property-section">
+        <h3>Match con el cliente</h3>
+        <p>${matchCliente}</p>
+      </section>
+
+      <div class="internal-footer">
+        <div>Uso interno Flipeame. No reenviar esta ficha tal cual al cliente sin revisión.</div>
+        ${
+          data.sourceUrl
+            ? `<div>URL procesada: <a href="${data.sourceUrl}" target="_blank" rel="noopener">Ver publicación original</a></div>`
+            : ""
+        }
+      </div>
+    </article>
+  `;
+
+  // Listeners galería
+  const heroImg = document.getElementById("heroImage");
+  const strip = document.getElementById("galleryStrip");
+  if (heroImg && strip) {
+    strip.addEventListener("click", (e) => {
+      const btn = e.target.closest(".gallery-thumb");
+      if (!btn) return;
+      const url = btn.getAttribute("data-url");
+      if (!url) return;
+      heroImg.src = url;
+      strip.querySelectorAll(".gallery-thumb").forEach((b) =>
+        b.classList.remove("active")
+      );
+      btn.classList.add("active");
     });
-  });
+  }
 }
 
-// Render principal de la ficha (sin texto de WhatsApp)
-function renderFicha(data) {
-  const ai = data.ai || {};
-  const portalId = getPortalId(data.sourceUrl);
+// ----------------- WHATSAPP -------------------
 
-  const precioUFNum = parseNumber(data.precio_uf);
-  const m2UtileNum = parseNumber(data.m2_utile);
-  const m2TotalNum = parseNumber(data.m2_total);
-
-  const ufM2Util = (precioUFNum && m2UtileNum)
-    ? (precioUFNum / m2UtileNum).toFixed(0)
+function prepareWhatsappText(data) {
+  const txtArea = document.getElementById("whatsappText");
+  const titulo = safe(data.titulo, "Propiedad en venta");
+  const precio = formatUF(data.precio_uf);
+  const programa = safe(data.programa);
+  const utiles = safe(data.m2_utile);
+  const total = safe(data.m2_total);
+  const terraza = safe(data.m2_terraza);
+  const estac = safe(data.estacionamientos);
+  const bod = safe(data.bodegas);
+  const ufm2 = data.m2_utile && data.precio_uf
+    ? Math.round(
+        Number(String(data.precio_uf).replace(/\./g, "")) / Number(data.m2_utile)
+      ).toLocaleString("es-CL")
     : null;
 
-  const ufM2Total = (precioUFNum && m2TotalNum)
-    ? (precioUFNum / m2TotalNum).toFixed(0)
-    : null;
+  const descripcion =
+    (data.ai && data.ai.descripcion_ejecutiva) ||
+    safe(data.descripcion_raw, "");
 
-  // --- NUEVA LÓGICA DE IMÁGENES ---
-  // Construimos un array con todas las imágenes sin duplicados
-  const allImages = [];
-  (data.image_urls || []).forEach((u) => {
-    if (u && !allImages.includes(u)) {
-      allImages.push(u);
-    }
-  });
-
-  // Determinamos mainImg
-  let mainImg = data.main_image_url || null;
-  if (!mainImg && allImages.length > 0) {
-    mainImg = allImages[0];
+  let lines = [];
+  lines.push("Te comparto el resumen de esta propiedad:");
+  lines.push("");
+  lines.push(titulo);
+  lines.push(`Precio: ${precio}`);
+  lines.push(`Programa: ${programa}`);
+  lines.push(`Superficies: ${utiles} m² útiles, ${total} m² totales, ${terraza} m² terraza`);
+  lines.push(`Estac/Bodegas: ${estac} estac, ${bod} bodegas`);
+  if (ufm2) lines.push(`Indicadores: ~ ${ufm2} UF/m² útil`);
+  lines.push("");
+  if (descripcion) {
+    lines.push("Descripción ejecutiva:");
+    lines.push(descripcion);
+    lines.push("");
+  }
+  if (data.sourceUrl) {
+    lines.push(`Link: ${data.sourceUrl}`);
   }
 
-  // Si tenemos mainImg pero no está en allImages, la ponemos al inicio
-  if (mainImg && !allImages.includes(mainImg)) {
-    allImages.unshift(mainImg);
+  txtArea.value = lines.join("\n");
+}
+
+async function handleCopyWhatsapp() {
+  const txtArea = document.getElementById("whatsappText");
+  const text = txtArea.value;
+  if (!text) return;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus("Texto de WhatsApp copiado al portapapeles.", "success");
+  } catch (e) {
+    // Fallback clásico
+    txtArea.select();
+    document.execCommand("copy");
+    setStatus("Texto copiado (método alternativo).", "success");
   }
-  
-  // Guardamos imágenes en estado para el futuro PDF
-  currentImages = [...allImages];
-  selectedImagesForPdf = [...allImages]; // por defecto, TODAS seleccionadas
+}
 
+// ----------------- PDF -------------------
 
-  let html = `
-    <div class="ficha">
-      <div class="ficha-header">
-        <div class="ficha-photos">
-  `;
+function renderPdfFicha(data) {
+  const cont = document.getElementById("pdfFicha");
+  const titulo = safe(data.titulo, "Propiedad en venta");
+  const precio = formatUF(data.precio_uf);
+  const programa = safe(data.programa);
+  const utiles = safe(data.m2_utile);
+  const total = safe(data.m2_total);
+  const terraza = safe(data.m2_terraza);
+  const estac = safe(data.estacionamientos);
+  const bod = safe(data.bodegas);
+  const gastos =
+    data.gastos_comunes && data.gastos_comunes !== "N/D"
+      ? "$ " + data.gastos_comunes
+      : "N/D";
+  const orient = safe(data.orientacion);
+  const piso = safe(data.piso);
+  const antig = safe(data.antiguedad);
 
-  if (mainImg) {
-    html += `
-      <div class="main-photo-wrapper">
-        <img class="main-photo" src="${mainImg}" alt="Foto principal propiedad" />
+  const descripcion =
+    (data.ai && data.ai.descripcion_ejecutiva) ||
+    safe(data.descripcion_raw, "Descripción no disponible");
+
+  const highlights =
+    (data.ai && Array.isArray(data.ai.highlights) && data.ai.highlights.length
+      ? data.ai.highlights
+      : []
+    );
+
+  const matchCliente =
+    (data.ai && data.ai.match_cliente) ||
+    "Ficha comercial orientada a clientes que busquen un estilo de vida de alto estándar.";
+
+  const hero = data.main_image_url || (data.image_urls && data.image_urls[0]) || "";
+  const thumbs = (data.image_urls || []).slice(1, 4); // 3 miniaturas para el PDF
+
+  cont.innerHTML = `
+    <div class="pdf-page">
+      <header class="pdf-header">
+        <img src="logo-flipeame.svg" class="pdf-logo" alt="Flipeame" />
+        <div class="pdf-tag">Ficha comercial · Uso interno · Información referencial</div>
+      </header>
+
+      <h1 class="pdf-title">${titulo}</h1>
+      <div class="pdf-subrow">
+        <strong>${precio}</strong> · ${programa}
       </div>
-    `;
-  }
 
-  if (allImages.length > 0) {
-    html += `<div class="thumbs-row">`;
-    allImages.forEach((url) => {
-    const isActive = url === mainImg;
-    html += `
-      <img
-        class="thumb-photo ${isActive ? "active-thumb" : ""} selected-thumb"
-        src="${url}"
-        data-photo-url="${url}"
-        data-selected="true"
-        alt="Foto propiedad"
-      />
-    `;
-  });
-
-    html += `</div>`;
-  }
-
-  html += `
+      <div class="pdf-grid">
+        <div class="pdf-hero">
+          ${
+            hero
+              ? `<img src="${hero}" alt="Foto propiedad">`
+              : `<div style="width:100%;height:70mm;background:#e5e7eb;display:flex;align-items:center;justify-content:center;font-size:9px;color:#9ca3af;">Sin imagen</div>`
+          }
+          ${
+            thumbs.length
+              ? `<div class="pdf-gallery">
+              ${thumbs
+                .map((u) => `<img src="${u}" alt="Foto adicional">`)
+                .join("")}
+            </div>`
+              : ""
+          }
         </div>
 
-        <div class="ficha-meta">
-          <h2>${data.titulo || "Propiedad sin título"}</h2>
-          <div class="tags-row">
-            ${portalId ? `<span class="tag">ID: ${portalId}</span>` : ""}
-          </div>
-
-          <div class="datos-basicos-grid">
-            <div>
-              <span class="label">Precio UF</span>
-              <span class="value">${data.precio_uf || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Programa</span>
-              <span class="value">${data.programa || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Útil (m²)</span>
-              <span class="value">${data.m2_utile || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Terraza (m²)</span>
-              <span class="value">${data.m2_terraza || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Total (m²)</span>
-              <span class="value">${data.m2_total || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Estac.</span>
-              <span class="value">${data.estacionamientos || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Bodegas</span>
-              <span class="value">${data.bodegas || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Piso</span>
-              <span class="value">${data.piso || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Orientación</span>
-              <span class="value">${data.orientacion || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">Antigüedad</span>
-              <span class="value">${data.antiguedad || "N/D"}</span>
-            </div>
-            <div>
-              <span class="label">G. comunes</span>
-              <span class="value">${data.gastos_comunes === "N/D" ? "N/D" : "$ " + data.gastos_comunes}</span>
-            </div>
-  `;
-
-  if (ufM2Util) {
-    html += `
-            <div>
-              <span class="label">UF/m² útil</span>
-              <span class="value">${ufM2Util}</span>
-            </div>
-    `;
-  }
-
-  if (ufM2Total) {
-    html += `
-            <div>
-              <span class="label">UF/m² total</span>
-              <span class="value">${ufM2Total}</span>
-            </div>
-    `;
-  }
-
-  html += `
-          </div>
+        <div class="pdf-facts">
+          <table class="pdf-facts-table">
+            <tr>
+              <td class="pdf-facts-label">Programa</td>
+              <td>${programa}</td>
+            </tr>
+            <tr>
+              <td class="pdf-facts-label">Superficie útil</td>
+              <td>${utiles} m²</td>
+            </tr>
+            <tr>
+              <td class="pdf-facts-label">Superficie total</td>
+              <td>${total} m²</td>
+            </tr>
+            <tr>
+              <td class="pdf-facts-label">Superficie terraza</td>
+              <td>${terraza} m²</td>
+            </tr>
+            <tr>
+              <td class="pdf-facts-label">Estac / Bodegas</td>
+              <td>${estac} estac · ${bod} bod</td>
+            </tr>
+            <tr>
+              <td class="pdf-facts-label">Gastos comunes aprox.</td>
+              <td>${gastos}</td>
+            </tr>
+            <tr>
+              <td class="pdf-facts-label">Orientación</td>
+              <td>${orient}</td>
+            </tr>
+            <tr>
+              <td class="pdf-facts-label">Piso</td>
+              <td>${piso}</td>
+            </tr>
+            <tr>
+              <td class="pdf-facts-label">Antigüedad</td>
+              <td>${antig}</td>
+            </tr>
+          </table>
         </div>
-      </div> <!-- /ficha-header -->
-  `;
-
-  // Bloque IA
-  if (ai && (ai.descripcion_ejecutiva || (ai.highlights && ai.highlights.length) || ai.match_cliente)) {
-    html += `
-      <div class="ficha-body">
-        ${ai.descripcion_ejecutiva ? `
-          <h3>Descripción ejecutiva</h3>
-          <p>${ai.descripcion_ejecutiva}</p>
-        ` : ""}
-
-        ${(ai.highlights && ai.highlights.length) ? `
-          <h3>Highlights</h3>
-          <ul>
-            ${ai.highlights.map(h => `<li>${h}</li>`).join("")}
-          </ul>
-        ` : ""}
-
-        ${ai.match_cliente ? `
-          <h3>Match con el cliente</h3>
-          <p>${ai.match_cliente}</p>
-        ` : ""}
       </div>
-    `;
-  } else {
-    html += `
-      <div class="ficha-body">
-        <h3>Descripción</h3>
-        <p>${data.descripcion_raw || "Sin descripción disponible."}</p>
-      </div>
-    `;
-  }
 
-  // Footer técnico
-  html += `
-      <div class="ficha-footer">
-        <span>URL procesada: </span>
-        <a href="${data.sourceUrl}" target="_blank" rel="noopener noreferrer">
-          ${data.sourceUrl}
-        </a>
-      </div>
+      <section class="pdf-section">
+        <h3>Descripción ejecutiva</h3>
+        <p>${descripcion}</p>
+      </section>
+
+      ${
+        highlights.length
+          ? `
+      <section class="pdf-section">
+        <h3>Highlights</h3>
+        <ul>
+          ${highlights.map((h) => `<li>${h}</li>`).join("")}
+        </ul>
+      </section>
+      `
+          : ""
+      }
+
+      <section class="pdf-section">
+        <h3>Match con el cliente</h3>
+        <p>${matchCliente}</p>
+      </section>
+
+      <footer class="pdf-footer">
+        Ficha para uso comercial de Flipeame. La información es referencial y debe ser validada
+        antes de presentarla formalmente al cliente. No incluye el enlace original del portal.
+      </footer>
     </div>
   `;
-
-  return html;
 }
 
-// Arma texto compacto para WhatsApp (USO INTERNO)
-function buildWhatsappText(data, ai, extra) {
-  const titulo = data.titulo || "Propiedad";
-  const precioUF = data.precio_uf || "N/D";
-  const m2U = data.m2_utile || "N/D";
-  const m2T = data.m2_total || "N/D";
-  const m2Ter = data.m2_terraza || "N/D";
-  const prog = data.programa || "N/D";
-  const estac = data.estacionamientos || "N/D";
-  const bodegas = data.bodegas || "N/D";
-
-  const ufM2U = extra.ufM2Util ? `${extra.ufM2Util} UF/m² útil` : null;
-  const ufM2T = extra.ufM2Total ? `${extra.ufM2Total} UF/m² total` : null;
-
-  let lineas = [];
-
-  lineas.push(`Te comparto el resumen de esta propiedad:`);
-  lineas.push(``);
-  lineas.push(`${titulo}`);
-  lineas.push(`Precio: UF ${precioUF}`);
-  lineas.push(`Programa: ${prog}`);
-  lineas.push(`Superficies: ${m2U} m² útiles, ${m2Ter} m² terraza, ${m2T} m² totales`);
-  lineas.push(`Estac/Bodegas: ${estac} estac, ${bodegas} bodegas`);
-
-  if (ufM2U || ufM2T) {
-    lineas.push(``);
-    lineas.push(`Indicadores:`);
-    if (ufM2U) lineas.push(`- ${ufM2U}`);
-    if (ufM2T) lineas.push(`- ${ufM2T}`);
+async function handleDownloadPdf() {
+  if (!currentData) return;
+  if (typeof html2pdf === "undefined") {
+    alert("No se encontró la librería de PDF (html2pdf). Revisa el script en index.html.");
+    return;
   }
 
-  if (ai && ai.descripcion_ejecutiva) {
-    lineas.push(``);
-    lineas.push(`Descripción ejecutiva:`);
-    lineas.push(ai.descripcion_ejecutiva);
+  renderPdfFicha(currentData);
+
+  const element = document.getElementById("pdfFicha");
+  const titulo = safe(currentData.titulo, "ficha-propiedad")
+    .replace(/[^a-zA-Z0-9\- ]/g, "")
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+
+  const opt = {
+    margin: [0, 0, 0, 0],
+    filename: `${titulo || "ficha-propiedad"}.pdf`,
+    image: { type: "jpeg", quality: 0.95 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+  };
+
+  try {
+    setStatus("Generando PDF…", "info");
+    await html2pdf().set(opt).from(element).save();
+    setStatus("PDF descargado correctamente.", "success");
+  } catch (e) {
+    console.error(e);
+    setStatus("Ocurrió un problema al generar el PDF.", "error");
   }
-
-  lineas.push(``);
-  lineas.push(`Link: ${data.sourceUrl}`);
-
-  return lineas.join("\n");
 }
