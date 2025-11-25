@@ -261,3 +261,13 @@ body {
 .pdf-footer { background: var(--gris-carbon); height: 15mm; padding: 0 15mm; display: flex; align-items: center; justify-content: space-between; color: white; margin-top: auto; }
 .agent-name { color: var(--verde-menta); font-weight: 800; font-size: 8pt; }
 .qr-placeholder { font-weight: 800; color: var(--verde-menta); }
+
+.hidden-textarea {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none; /* Para que no se pueda clicar */
+}
