@@ -241,13 +241,15 @@ body {
 
 /* BODY PDF (Ajustes de layout) */
 .pdf-body {
-    flex: 1;
-    padding: 10mm 15mm; /* Margen estándar */
+    /* Altura fija calculada: 
+       296mm (total) - 20mm (header) - 90mm (hero) - 15mm (footer) = ~171mm 
+       Le damos 165mm para dejar margen de seguridad */
+    height: 165mm; 
+    padding: 8mm 15mm; /* Un poco menos de padding vertical */
     display: grid;
-    grid-template-columns: 58% 38%; /* Ajusté un poco las columnas */
+    grid-template-columns: 58% 38%;
     gap: 4%;
-    /* Aseguramos que el contenido no empuje el footer fuera */
-    overflow: hidden; 
+    overflow: hidden; /* CRÍTICO: Si hay mucho texto, lo corta en vez de montar el footer */
 }
 
 /* Columna Izquierda */
@@ -284,11 +286,14 @@ body {
 }
 
 .pdf-text-content {
-    font-size: 10pt; /* Aumenté de 9pt a 10pt */
-    line-height: 1.5;
+    font-size: 9.5pt; /* Un pelín más pequeño para que entre más */
+    line-height: 1.45;
     text-align: justify;
-    margin-bottom: 6mm;
+    margin-bottom: 5mm;
     color: #374151;
+    /* Limitamos visualmente el bloque de texto */
+    max-height: 75mm; 
+    overflow: hidden;
 }
 
 .pdf-highlights-list {
@@ -393,7 +398,20 @@ body {
 }
 
 /* Footer PDF */
-.pdf-footer { background: var(--gris-carbon); height: 15mm; padding: 0 15mm; display: flex; align-items: center; justify-content: space-between; color: white; margin-top: auto; }
+.pdf-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 15mm;
+    background: var(--gris-carbon);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 15mm;
+    color: white;
+    z-index: 10; /* Siempre encima */
+}
 .agent-name { color: var(--verde-menta); font-weight: 800; font-size: 8pt; }
 .qr-placeholder { font-weight: 800; color: var(--verde-menta); }
 
