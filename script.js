@@ -466,7 +466,15 @@ async function handleDownloadPdf() {
   document.getElementById('pdf-price').textContent = formatUF(currentData.precio_uf);
   document.getElementById('pdf-title').textContent = safe(currentData.titulo).substring(0, 60); // Cortar si es muy largo
   document.getElementById('pdf-address').textContent = "ID: " + getItemCode(currentData.sourceUrl) + " · " + safe(currentData.orientacion, "Santiago");
-  document.getElementById("pdf-desc").textContent = currentData.ai?.descripcion_ejecutiva || currentData.descripcion_raw;
+  // Descripción inteligente
+  let descRaw = (currentData.ai && currentData.ai.descripcion_ejecutiva) || safe(currentData.descripcion_raw);
+  
+  // CORRECCIÓN: Cortar texto si es excesivamente largo para el PDF (aprox 900 caracteres)
+  // para asegurar que no rompa el diseño A4.
+  if (descRaw.length > 950) {
+      descRaw = descRaw.substring(0, 950) + "...";
+  }
+  document.getElementById('pdf-desc').textContent = descRaw;
 
   // Specs
   // Llenar Specs
