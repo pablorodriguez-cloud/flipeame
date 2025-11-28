@@ -334,11 +334,10 @@ body {
 /* 1. Galería Lateral: Ajuste de tamaño para que quepa la caja gris */
 .pdf-gallery-grid {
     display: grid;
-    /* CAMBIO CLAVE: Bajamos de 45mm a 32mm por foto.
-       32mm x 3 fotos = 96mm. Esto libera ~40mm de espacio para la caja gris. */
-    grid-template-rows: repeat(3, 32mm); 
-    gap: 3mm;
-    margin-bottom: 5mm;
+    /* CAMBIO: Bajamos de 32mm a 28mm. Ganamos 12mm de espacio total */
+    grid-template-rows: repeat(3, 28mm); 
+    gap: 2mm; /* Gap un pelín más fino */
+    margin-bottom: 3mm; /* Menos margen abajo */
 }
 
 /* BODY PDF (Ajuste fino de altura) */
@@ -357,63 +356,74 @@ body {
     height: 100%;
     object-fit: cover;
     border-radius: 6px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    border: 1px solid #eee; /* Borde sutil para definición */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: 1px solid #eee;
 }
 
 /* 2. Caja de Specs (Mejorada) */
 .pdf-specs-box {
     background: white;
-    padding: 4mm; /* Padding un poco más compacto */
-    border-radius: 8px;
+    padding: 3mm; /* Menos padding (antes 4mm) */
+    border-radius: 6px;
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 3mm; /* Menos hueco entre líneas */
+    gap: 2mm; /* Menos espacio entre datos */
     border: 2px solid #F3F4F6;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.03);
-    
-    /* Aseguramos que no se rompa entre páginas */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     break-inside: avoid;
+
 }
 
 .spec-label {
-    font-size: 6pt;
+    font-size: 5.5pt; /* Letra un pelín más chica para que no ocupe tanto */
     color: #9CA3AF;
     font-weight: 700;
     display: block;
-    margin-bottom: 1px;
+    margin-bottom: 0px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .spec-value {
-    font-size: 9.5pt;
+    font-size: 9pt;
     color: var(--azul-oscuro);
     font-weight: 800;
-    white-space: nowrap; /* Evita que el texto se rompa en dos líneas */
+    white-space: nowrap;
+    line-height: 1.1; /* Altura de línea más apretada */
+}
+
+/* items full width (estac, gastos) con un poco de margen arriba */
+.spec-item.full-width { 
+    grid-column: span 2; 
+    margin-top: 1mm; 
+    padding-top: 1mm;
+    border-top: 1px dashed #eee; /* Línea separadora sutil */
 }
 
 /* 3. Match Flipeame (Arreglado corte) */
 /* El Match Flipeame se mantiene igual, ahora tendrá espacio */
 .pdf-match-box {
-    margin-top: 5mm;
+    margin-top: 3mm; /* Menos separación arriba */
     background: #F0FDFA;
-    padding: 4mm;
-    border-left: 4px solid var(--verde-menta);
-    border-radius: 0 8px 8px 0;
+    padding: 3mm; /* Menos relleno interno */
+    border-left: 3px solid var(--verde-menta);
+    border-radius: 0 6px 6px 0;
+    /* Esto es vital: evita que se rompa */
+    break-inside: avoid;
+    page-break-inside: avoid;
 }
 .match-title {
-    font-size: 8pt;
+    font-size: 7.5pt;
     font-weight: 900;
     color: var(--azul-oscuro);
-    margin-bottom: 2mm;
+    margin-bottom: 1mm;
     text-transform: uppercase;
 }
 .match-text {
-    font-size: 9pt;
+    font-size: 8.5pt;
     font-style: italic;
     color: #4B5563;
-    line-height: 1.4;
+    line-height: 1.3;
     margin: 0;
 }
 
